@@ -36,12 +36,6 @@ export default {
         },
         border: "hsl(var(--border))",
         ring: "hsl(var(--ring))",
-        commit: {
-          main: "#22c55e",
-          feature: "#3b82f6",
-          hotfix: "#ef4444",
-          merge: "#a855f7",
-        }
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -52,8 +46,13 @@ export default {
         "fade-in": "fadeIn 0.5s ease-out forwards",
         "slide-up": "slideUp 0.6s ease-out forwards",
         "pulse-glow": "pulseGlow 2s ease-in-out infinite",
+        "hero-line": "heroLine 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards",
       },
       keyframes: {
+        heroLine: {
+          "0%": { opacity: "0", transform: "translateY(24px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" }
+        },
         fadeIn: {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" }

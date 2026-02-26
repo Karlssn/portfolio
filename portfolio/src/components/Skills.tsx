@@ -1,73 +1,187 @@
-import { Code2, Cloud, Database, Wrench, Server } from 'lucide-react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { skills } from '../data/experience';
-import { cn } from '../lib/utils';
+import { useSectionProgress } from '../hooks/useScrollProgress';
 
-const skillCategories = [
-  { key: 'backend', label: 'Backend', icon: Server, color: 'text-commit-main' },
-  { key: 'frontend', label: 'Frontend', icon: Code2, color: 'text-commit-feature' },
-  { key: 'cloud', label: 'Cloud & DevOps', icon: Cloud, color: 'text-commit-merge' },
-  { key: 'databases', label: 'Databases', icon: Database, color: 'text-amber-500' },
-  { key: 'other', label: 'Other', icon: Wrench, color: 'text-commit-hotfix' },
-] as const;
+const SKILLS_SECTION_VH = 360;
+
+/**
+ * Small Vanta trunk background in the bottom-left corner.
+ * Position/scale: -left-[95vh] etc. keeps the effect in the corner without covering the title.
+ */
+function TrunkCorner() {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    const el = ref.current;
+    if (!el) return;
+
+    let destroy: (() => void) | undefined;
+
+    const run = async () => {
+      const TRUNK = (await import('vanta/dist/vanta.trunk.min')).default;
+      const p5 = (await import('p5')).default;
+      if (!mountedRef.current || !ref.current) return;
+      const instance = TRUNK({
+        el: ref.current,
+        p5,
+        color: 0xfacc15,
+        backgroundColor: 0x0f0f0f,
+        backgroundAlpha: 1.0,
+        spacing: 0,
+        chaos: 1,
+      });
+      return () => {
+        if (instance?.destroy) instance.destroy();
+      };
+    };
+
+    run().then((d) => {
+      if (!mountedRef.current && typeof d === 'function') d();
+      else destroy = d;
+    });
+
+    return () => {
+      mountedRef.current = false;
+      if (typeof destroy === 'function') destroy();
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className="pointer-events-none absolute -left-[95vh] -bottom-[95vh] w-[190vh] h-[190vh] rounded-full overflow-hidden bg-transparent origin-center scale-[1.8]"
+    />
+  );
+}
+
+/** Opacity 0..1 when section is in view, for fixed overlay visibility. */
+function sectionVisibility(progress: number): number {
+  // Fade in at the start; stay fully visible while in section; fade out once scrolled past (progress >= 1).
+  const FADE_IN_END = 0.08;
+
+  if (progress <= 0) return 0;
+  if (progress >= 1) return 0;
+
+  if (progress < FADE_IN_END) {
+    return progress / FADE_IN_END;
+  }
+
+  return 1;
+}
+
+const GAP_PX = 8; // gap-2
 
 export function Skills() {
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const curtainRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const [listTranslateY, setListTranslateY] = useState(0);
+
+  const progress = useSectionProgress(sectionRef, SKILLS_SECTION_VH);
+
+  const { currentSkill, surrounding } = useMemo(() => {
+    if (skills.length === 0) {
+      return { currentSkill: '', surrounding: [] as string[] };
+    }
+    const index = Math.min(
+      skills.length - 1,
+      Math.max(0, Math.floor(progress * (skills.length + 2)))
+    );
+    const current = skills[index] ?? skills[skills.length - 1];
+    const start = Math.max(0, index - 4);
+    const end = Math.min(skills.length, index + 6);
+    return {
+      currentSkill: current,
+      surrounding: skills.slice(start, end),
+    };
+  }, [progress]);
+
+  useLayoutEffect(() => {
+    const container = curtainRef.current;
+    const list = listRef.current;
+    if (!container || !list || surrounding.length === 0) return;
+
+    const activeIndex = surrounding.findIndex((s) => s === currentSkill);
+    if (activeIndex < 0) return;
+
+    const firstRow = list.querySelector('[data-skill-row]');
+    const containerHeight = container.offsetHeight;
+    const rowHeight = firstRow
+      ? (firstRow as HTMLElement).offsetHeight + GAP_PX
+      : 40;
+
+    const centerY = containerHeight / 2;
+    const activeCenter = activeIndex * rowHeight + rowHeight / 2;
+    const translateY = centerY - activeCenter;
+
+    // Defer so the browser paints the current position first; then the transition runs to the new one.
+    const raf = requestAnimationFrame(() => {
+      setListTranslateY(translateY);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [surrounding, currentSkill]);
+
+  const visible = sectionVisibility(progress);
+
   return (
-    <section className="py-20 relative">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-card/30 to-transparent" />
-      
-      <div className="container mx-auto px-6 relative">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 bg-card/50 backdrop-blur border border-border rounded-lg px-4 py-2 mb-6">
-            <Code2 className="w-4 h-4 text-primary" />
-            <span className="text-muted-foreground font-mono text-sm">cat skills.json</span>
+    <section
+      ref={sectionRef}
+      className="relative"
+      style={{ minHeight: `${SKILLS_SECTION_VH}vh` }}
+      aria-label="Kompetenser"
+    >
+      {/* Lenis-driven fixed overlay: title and curtain stay in viewport while section scrolls */}
+      <div
+        className="fixed inset-0 z-10 pointer-events-none flex flex-col md:flex-row justify-center px-4 md:px-8 lg:px-12"
+        style={{ opacity: visible }}
+        aria-hidden={visible < 0.5}
+      >
+        <div className="pointer-events-auto w-full md:w-5/12 lg:max-w-xl md:pr-10 md:self-center md:-mt-[37vh]">
+          {/* Trunk Vanta background in the bottom-left corner */}
+          <TrunkCorner />
+          <div className="relative">
+            <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
+              Tekniker jag arbetar med
+            </h2>
           </div>
-          <h2 className="text-3xl lg:text-5xl font-bold">
-            <span className="text-primary">Technical</span> Skills
-          </h2>
         </div>
 
-        {/* Skills Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {skillCategories.map((category, catIndex) => {
-            const Icon = category.icon;
-            const categorySkills = skills[category.key as keyof typeof skills];
-            
-            return (
-              <div 
-                key={category.key}
-                className={cn(
-                  "group bg-card/50 backdrop-blur border border-border rounded-xl p-6",
-                  "hover:border-primary/50 transition-all duration-300",
-                  "hover:shadow-lg hover:shadow-primary/5",
-                  "opacity-0 animate-slide-up",
-                  category.key === 'other' && "md:col-span-2 lg:col-span-1"
-                )}
-                style={{ animationDelay: `${0.1 * catIndex}s` }}
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={cn(
-                    "p-2 rounded-lg bg-secondary",
-                    category.color
-                  )}>
-                    <Icon className="w-5 h-5" />
+        <div className="pointer-events-auto w-full md:w-7/12 lg:max-w-2xl md:pl-10 mt-10 md:mt-0 md:self-center md:ml-4">
+          <div
+            ref={curtainRef}
+            className="relative h-56 md:h-72 overflow-hidden"
+          >
+            <div
+              ref={listRef}
+              className="relative flex flex-col gap-2 transition-[transform] duration-700 ease-out"
+              style={{ transform: `translateY(${listTranslateY}px)` }}
+            >
+              {surrounding.map((skillName, index) => {
+                const isCurrent = skillName === currentSkill;
+                const isEdge =
+                  index === 0 || index === surrounding.length - 1;
+                const opacity = isCurrent ? 1 : isEdge ? 0.35 : 0.9;
+
+                return (
+                  <div
+                    key={skillName}
+                    data-skill-row
+                    className={
+                      'text-xl md:text-3xl font-semibold transition-all duration-300 ' +
+                      (isCurrent
+                        ? 'text-primary'
+                        : 'text-foreground/80 scale-95')
+                    }
+                    style={{ opacity }}
+                  >
+                    {skillName}
                   </div>
-                  <h3 className="font-semibold text-foreground">{category.label}</h3>
-                </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  {categorySkills.map((skill) => (
-                    <span 
-                      key={skill}
-                      className="text-xs px-3 py-1.5 bg-secondary hover:bg-primary/20 hover:text-primary text-secondary-foreground rounded-full font-mono transition-colors cursor-default"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </section>

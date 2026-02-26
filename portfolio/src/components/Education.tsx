@@ -1,40 +1,84 @@
+import { useRef } from 'react';
 import { GraduationCap, Award, BookOpen } from 'lucide-react';
 import { education, certifications, employers } from '../data/experience';
 import { cn } from '../lib/utils';
+import { useElementVisibility } from '../hooks/useScrollProgress';
+
+/** Staggered visibility: 0..1 with optional delay so column appears later on fade-in. */
+function staggeredVisibility(visibility: number, delay: number): number {
+  if (visibility <= delay) return 0;
+  return Math.min(1, (visibility - delay) / (1 - delay));
+}
 
 export function Education() {
+  const employersRef = useRef<HTMLDivElement | null>(null);
+  const certsRef = useRef<HTMLDivElement | null>(null);
+  const educationRef = useRef<HTMLDivElement | null>(null);
+
+  const employersVis = useElementVisibility(employersRef, 0.35);
+  const certsVis = useElementVisibility(certsRef, 0.35);
+  const educationVis = useElementVisibility(educationRef, 0.35);
+
+  const o1 = staggeredVisibility(employersVis, 0);
+  const o2 = staggeredVisibility(certsVis, 0.15);
+  const o3 = staggeredVisibility(educationVis, 0.3);
+
   return (
-    <section className="py-20 relative">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(59,130,246,0.05)_0%,transparent_70%)]" />
-      
-      <div className="container mx-auto px-6 relative">
+    <section className="relative z-30 py-20 bg-muted overflow-hidden">
+      {/* 10 tilted wavy lines from bottom to top */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        <svg
+          className="absolute inset-0 w-full h-full"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <g transform="rotate(-10 50 50)">
+            {[5, 15, 25, 35, 45, 55, 65, 75, 85, 95].map((x, i) => (
+              <path
+                key={x}
+                d={`M${x} 150 Q${x + 8} 100 ${x} 50 T${x} -50`}
+                fill="none"
+                stroke="hsl(var(--muted-waves))"
+                strokeWidth="0.4"
+                opacity={0.5 + (i % 3) * 0.1}
+              />
+            ))}
+          </g>
+        </svg>
+      </div>
+      <div className="container mx-auto px-6 relative z-10">
         <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {/* Employers */}
-          <div className="opacity-0 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div
+            ref={employersRef}
+            className="transform transition-all duration-500 ease-out"
+            style={{
+              opacity: o1,
+              transform: `translateY(${(1 - o1) * 20}px)`,
+            }}
+          >
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 rounded-lg bg-secondary text-primary">
                 <BookOpen className="w-5 h-5" />
               </div>
-              <h3 className="text-xl font-bold">Employers</h3>
+              <h3 className="text-xl font-bold text-foreground">Arbetsgivare</h3>
             </div>
-            
+
             <div className="space-y-4">
-              {employers.map((employer, index) => (
-                <div 
+              {employers.map((employer) => (
+                <div
                   key={employer.name}
                   className={cn(
-                    "group bg-card/50 backdrop-blur border border-border rounded-lg p-4",
-                    "hover:border-primary/50 transition-all duration-300"
+                    "bg-card border border-border rounded-lg p-4",
+                    "hover:border-primary/30 transition-colors"
                   )}
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                        {employer.name}
-                      </h4>
+                      <h4 className="font-semibold text-foreground">{employer.name}</h4>
                       <p className="text-sm text-muted-foreground">{employer.role}</p>
                     </div>
-                    <span className="text-xs text-muted-foreground font-mono bg-secondary px-2 py-1 rounded">
+                    <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded shrink-0">
                       {employer.period}
                     </span>
                   </div>
@@ -43,78 +87,73 @@ export function Education() {
             </div>
           </div>
 
-          {/* Education */}
-          <div className="opacity-0 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+          <div
+            ref={certsRef}
+            className="transform transition-all duration-500 ease-out"
+            style={{
+              opacity: o2,
+              transform: `translateY(${(1 - o2) * 20}px)`,
+            }}
+          >
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-secondary text-commit-feature">
-                <GraduationCap className="w-5 h-5" />
-              </div>
-              <h3 className="text-xl font-bold">Education</h3>
-            </div>
-            
-            <div className="space-y-4">
-              {education.map((edu, index) => (
-                <div 
-                  key={edu.degree}
-                  className={cn(
-                    "group bg-card/50 backdrop-blur border border-border rounded-lg p-4",
-                    "hover:border-commit-feature/50 transition-all duration-300"
-                  )}
-                >
-                  <h4 className="font-semibold text-foreground group-hover:text-commit-feature transition-colors text-sm">
-                    {edu.degree}
-                  </h4>
-                  <p className="text-sm text-muted-foreground">{edu.school}</p>
-                  <span className="text-xs text-muted-foreground font-mono">{edu.period}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Certifications */}
-          <div className="opacity-0 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-secondary text-commit-merge">
+              <div className="p-2 rounded-lg bg-secondary text-primary">
                 <Award className="w-5 h-5" />
               </div>
-              <h3 className="text-xl font-bold">Certifications</h3>
+              <h3 className="text-xl font-bold text-foreground">Certifieringar</h3>
             </div>
-            
+
             <div className="space-y-4">
               {certifications.map((cert) => (
-                <div 
+                <div
                   key={cert.name}
                   className={cn(
-                    "group bg-card/50 backdrop-blur border border-border rounded-lg p-4",
-                    "hover:border-commit-merge/50 transition-all duration-300"
+                    "bg-card border border-border rounded-lg p-4",
+                    "hover:border-primary/30 transition-colors"
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="p-1.5 bg-commit-merge/10 rounded">
-                      <Award className="w-4 h-4 text-commit-merge" />
+                    <div className="p-1.5 bg-primary/10 rounded">
+                      <Award className="w-4 h-4 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-foreground group-hover:text-commit-merge transition-colors text-sm">
-                        {cert.name}
-                      </h4>
-                      <span className="text-xs text-muted-foreground font-mono">{cert.year}</span>
+                      <h4 className="font-semibold text-foreground text-sm">{cert.name}</h4>
+                      <span className="text-xs text-muted-foreground">{cert.year}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            
-            {/* Azure badge visual */}
-            <div className="mt-6 p-4 bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-xl">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                  Az
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Microsoft Azure</p>
-                  <p className="text-xs text-muted-foreground">Certified Developer</p>
-                </div>
+          </div>
+
+          <div
+            ref={educationRef}
+            className="transform transition-all duration-500 ease-out"
+            style={{
+              opacity: o3,
+              transform: `translateY(${(1 - o3) * 20}px)`,
+            }}
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-secondary text-primary">
+                <GraduationCap className="w-5 h-5" />
               </div>
+              <h3 className="text-xl font-bold text-foreground">Utbildning</h3>
+            </div>
+
+            <div className="space-y-4">
+              {education.map((edu) => (
+                <div
+                  key={edu.degree}
+                  className={cn(
+                    "bg-card border border-border rounded-lg p-4",
+                    "hover:border-primary/30 transition-colors"
+                  )}
+                >
+                  <h4 className="font-semibold text-foreground text-sm">{edu.degree}</h4>
+                  <p className="text-sm text-muted-foreground">{edu.school}</p>
+                  <span className="text-xs text-muted-foreground">{edu.period}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

@@ -5,8 +5,8 @@ export interface Experience {
   period: string;
   description: string;
   technologies: string[];
-  branchType: 'main' | 'feature' | 'hotfix' | 'merge';
-  isMerged?: boolean;
+  /** Employer group (e.g. consultancy) – used for expandable experience sections */
+  employer: string;
 }
 
 export const experiences: Experience[] = [
@@ -15,69 +15,72 @@ export const experiences: Experience[] = [
     company: 'Dormy Golf',
     role: 'Senior Systemutvecklare',
     period: 'okt 2024 – pågående',
-    description: 'Sveriges största golf-företag med e-handel över hela Europa. Arbetar med förvaltning, vidareutveckling och nyutveckling av kritiska integrationer. Fokus på driftsäkra och förvaltningsbara flöden mellan nya och legacy-system. Bidragit till mer proaktivt arbetssätt med högre fokus på kvalitetssäkring.',
-    technologies: ['Github Actions', 'IIS', 'Kafka', 'Microsoft Azure', 'Blazor', '.NET Core', '.NET Framework'],
-    branchType: 'main',
+    description: 'Sveriges största golfföretag med e-handel över Europa. Förvaltning, vidareutveckling och nyutveckling av kritiska integrationer mellan system. Fokus på driftsäkra och förvaltningsbara integrationer; bidragit till mer proaktivt arbete och högre kvalitetsfokus i teamet.',
+    technologies: ['Github Actions', 'Kafka', 'Microsoft Azure', 'Blazor', '.NET Core', '.NET Framework', 'on-prem IIS'],
+    employer: 'Dormy Golf',
   },
   {
     id: 'vattenfall-2024',
-    company: 'Vattenfall (VattenFast)',
-    role: 'Fullstack Utvecklare',
+    company: 'VattenFast, Vattenfall',
+    role: 'Systemutvecklare',
     period: 'nov 2022 – okt 2024',
-    description: 'Visualisering av geografisk information för Vattenfalls anläggningar och dotterbolag. Ansvarade för fullstackutveckling av kartsystemet "VattenFast" - från arkitektur och systemdesign till onboarding av nya teammedlemmar och implementation av kartwidgets. Höga krav på säkerhet och dataseparering mellan olika bolag.',
-    technologies: ['Blazor WebAssembly', 'Tailwind', 'GraphQL', 'ArcGIS JS API', 'Entity Framework', 'NUnit', 'Azure'],
-    branchType: 'feature',
-    isMerged: true,
+    description: 'Avancerat kartsystem för att visualisera ägande och geografisk information över Vattenfalls dotterbolag. Strikta säkerhetskrav och dataseparering. Fullstack från frontend-widgets och Lantmäteriet-integration till backend och databasmigreringar. Större ansvar för arkitektur, systemdesign och onboarding 2024; tekniskt stöd i RFP med ArcGIS-expertis.',
+    technologies: ['Blazor WebAssembly', 'Tailwind', 'GraphQL', 'ArcGIS', 'Entity Framework', 'NUnit', 'Azure'],
+    employer: 'B3 Consulting Group',
   },
   {
     id: 'far',
-    company: 'FAR',
-    role: 'Utvecklare',
+    company: 'FLS, FAR',
+    role: 'Systemutvecklare',
     period: 'sep 2022 – okt 2024',
-    description: 'Ansvarig för support och vidareutveckling av FAR:s digitala utbildningsplattform. Implementerade lösningar för att hantera trafiktoppar och integrerade systemet med Learning Locker (LRS) och Microsoft Dynamics 365. Proaktivt arbete för att upprätthålla strikta SLA-nivåer.',
-    technologies: ['ASP.NET MVC', 'Azure ServiceBus', '.NET Framework', 'Dynamics 365'],
-    branchType: 'feature',
-    isMerged: true,
+    description: 'Digital plattform för uppspelning och administration av FAR:s utbildningar. SLA-ansvar genom support och utveckling. Integration med Learning Locker (LRS) och Microsoft Dynamics 365. Lösningar för trafiköverbelastning och vidareutveckling.',
+    technologies: ['ASP.NET MVC', 'Azure ServiceBus', '.NET Framework'],
+    employer: 'B3 Consulting Group',
   },
   {
     id: 'anicura',
-    company: 'AniCura (AniPlan)',
-    role: 'Utvecklare / Support',
+    company: 'AniPlan, AniCura',
+    role: 'Systemutvecklare / Support',
     period: 'aug 2022 – okt 2024',
-    description: 'Underhåll och vidareutveckling av en maskininlärningsprodukt för klassificering av data. Tjänsten automatiserar hantering av fritextfält vid konsolidering av data från internationella kliniker, vilket möjliggjort AniPlans expansion i Europa.',
+    description: 'Molnbaserad tjänst för djurhälsa med expansion till flera länder. Underhåll och vidareutveckling av ML-produkt som klassificerar data vid sammanslagning av företag (t.ex. fritextfält), vilket underlättat expansion.',
     technologies: ['Python', 'Machine Learning', 'Data Processing'],
-    branchType: 'hotfix',
-    isMerged: true,
+    employer: 'B3 Consulting Group',
   },
   {
     id: 'kickit',
     company: 'KickIt',
     role: 'Projektledare & Teknisk ansvarig',
     period: 'dec 2023 – mars 2024',
-    description: 'Internt initiativ för att skapa en samlingsplats för en fotbollsturnering. Agerade projektledare för 4 utvecklare, satte upp infrastruktur, CI/CD-flöden, kodstruktur och skötte kontakten med kravställare.',
+    description: 'Samlingssida för innomhusfotbollsturnering. Ansvarig för teknik och projektledning med fyra utvecklare: infrastruktur, CI/CD, kodstruktur, agilt arbetsflöde och dialog med kravställare.',
     technologies: ['NextJS', 'Minimal APIs', '.NET Core', 'Azure Bicep', 'Github Actions', 'EF Core'],
-    branchType: 'feature',
-    isMerged: true,
+    employer: 'B3 Consulting Group',
   },
   {
     id: 'previa',
     company: 'Previa',
-    role: 'Fullstackutvecklare',
+    role: 'Systemutvecklare',
     period: 'aug 2021 – aug 2022',
-    description: 'Förvaltning och utveckling av en produktsvit för användarrättigheter inom hälsobranschen. Levererade en framgångsrik integration mot Mobilt BankID för att stärka säkerheten i systemet.',
+    description: 'Vidareutveckling och förvaltning av produktsvit; fokus på produkt för användarrättigheter (web-API och MVC). Framgångsrik integration mot Mobilt BankID.',
     technologies: ['ASP.NET MVC', 'Angular', '.NET Framework', 'BankID API'],
-    branchType: 'feature',
-    isMerged: true,
+    employer: 'Nexer Group',
+  },
+  {
+    id: 'yh-sky',
+    company: 'YH SKY',
+    role: 'Handledare / Examinator',
+    period: 'jan 2022 – juni 2022',
+    description: 'Handledning av yrkeshögskoleelever i praktiska workshops. Tillsammans med kollega ansvar för examination: skriftlig rapport och presentation.',
+    technologies: ['HTML', 'SQL', '.NET Core', 'Javascript'],
+    employer: 'Nexer Group',
   },
   {
     id: 'esab',
     company: 'ESAB',
-    role: 'Fullstackutvecklare',
+    role: 'Systemutvecklare',
     period: 'apr 2021 – maj 2022',
-    description: 'Utveckling av en plattform för R&D-avdelningen för att justera svetsparametrar. Byggde en exportfunktion för binärfiler utifrån strikta specifikationer samt utvecklade webbgränssnittet för konfigurationshantering.',
-    technologies: ['Vue', '.NET Core', 'Entity Framework', 'SQL', 'Azure'],
-    branchType: 'feature',
-    isMerged: true,
+    description: 'Digitalisering av R&D-processer för konfiguration av svetsmaskiner. Webbgränssnitt för parametrar och export till binärfil enligt specifikation; arbete i både frontend och backend.',
+    technologies: ['Git', 'SQL', 'Entity Framework', 'Microsoft Azure', '.NET Core', 'Vue'],
+    employer: 'Nexer Group',
   },
 ];
 
@@ -101,11 +104,19 @@ export const certifications = [
   { name: 'Microsoft Certified: Azure Fundamentals (AZ-900)', year: '2022' },
 ];
 
-export const skills = {
-  backend: ['.NET Core', '.NET Framework', 'ASP.NET MVC', 'Entity Framework', 'Python', 'GraphQL', 'Minimal APIs'],
-  frontend: ['Blazor', 'Vue', 'Angular', 'NextJS', 'React', 'Tailwind CSS'],
-  cloud: ['Microsoft Azure', 'Azure ServiceBus', 'Azure Bicep', 'Github Actions', 'CI/CD'],
-  databases: ['SQL', 'Entity Framework', 'Kafka'],
-  other: ['Machine Learning', 'ArcGIS JS API', 'BankID', 'IIS', 'NUnit'],
-};
+/** Ordered list of techs (most attractive / relevant first). */
+export const skills: string[] = [
+  '.NET Core',
+  '.NET Framework',
+  'Git',
+  'NextJS',
+  'Blazor',
+  'Azure',
+  'Kafka',
+  'GitHub Actions',
+  'IIS on-prem',
+  'TypeScript',
+  'Tailwind',
+  'Azure Servicebus',
+];
 
