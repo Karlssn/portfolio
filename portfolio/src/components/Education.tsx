@@ -1,8 +1,9 @@
 import { useRef } from 'react';
 import { GraduationCap, Award, BookOpen } from 'lucide-react';
 import { education, certifications, employers } from '../data/experience';
-import { cn } from '../lib/utils';
 import { useElementVisibility } from '../hooks/useScrollProgress';
+import { useIsDesktop } from '../hooks/useIsDesktop';
+import { cn } from '../lib/utils';
 
 /** Staggered visibility: 0..1 with optional delay so column appears later on fade-in. */
 function staggeredVisibility(visibility: number, delay: number): number {
@@ -23,9 +24,21 @@ export function Education() {
   const o2 = staggeredVisibility(certsVis, 0.15);
   const o3 = staggeredVisibility(educationVis, 0.3);
 
+  const isDesktop = useIsDesktop();
+
+  const col1Style = isDesktop
+    ? { opacity: o1, transform: `translateY(${(1 - o1) * 20}px)` }
+    : undefined;
+  const col2Style = isDesktop
+    ? { opacity: o2, transform: `translateY(${(1 - o2) * 20}px)` }
+    : undefined;
+  const col3Style = isDesktop
+    ? { opacity: o3, transform: `translateY(${(1 - o3) * 20}px)` }
+    : undefined;
+
   return (
     <section className="relative z-30 py-20 bg-muted overflow-hidden">
-      {/* 10 tilted wavy lines from bottom to top */}
+      {/* 10 tilted wavy lines from bottom to top; viewBox matches path extent (y: -50..150, x: 5..95) */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
         <svg
           className="absolute inset-0 w-full h-full"
@@ -47,15 +60,12 @@ export function Education() {
           </g>
         </svg>
       </div>
-      <div className="container mx-auto px-6 relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <div
             ref={employersRef}
-            className="transform transition-all duration-500 ease-out"
-            style={{
-              opacity: o1,
-              transform: `translateY(${(1 - o1) * 20}px)`,
-            }}
+            className={isDesktop ? 'transform transition-all duration-500 ease-out' : ''}
+            style={col1Style}
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 rounded-lg bg-secondary text-primary">
@@ -89,11 +99,8 @@ export function Education() {
 
           <div
             ref={certsRef}
-            className="transform transition-all duration-500 ease-out"
-            style={{
-              opacity: o2,
-              transform: `translateY(${(1 - o2) * 20}px)`,
-            }}
+            className={isDesktop ? 'transform transition-all duration-500 ease-out' : ''}
+            style={col2Style}
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 rounded-lg bg-secondary text-primary">
@@ -105,7 +112,7 @@ export function Education() {
             <div className="space-y-4">
               {certifications.map((cert) => (
                 <div
-                  key={cert.name}
+                  key={`${cert.name}-${cert.year}`}
                   className={cn(
                     "bg-card border border-border rounded-lg p-4",
                     "hover:border-primary/30 transition-colors"
@@ -127,11 +134,8 @@ export function Education() {
 
           <div
             ref={educationRef}
-            className="transform transition-all duration-500 ease-out"
-            style={{
-              opacity: o3,
-              transform: `translateY(${(1 - o3) * 20}px)`,
-            }}
+            className={isDesktop ? 'transform transition-all duration-500 ease-out' : ''}
+            style={col3Style}
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 rounded-lg bg-secondary text-primary">
@@ -143,7 +147,7 @@ export function Education() {
             <div className="space-y-4">
               {education.map((edu) => (
                 <div
-                  key={edu.degree}
+                  key={`${edu.degree}-${edu.school}-${edu.period}`}
                   className={cn(
                     "bg-card border border-border rounded-lg p-4",
                     "hover:border-primary/30 transition-colors"
@@ -161,4 +165,3 @@ export function Education() {
     </section>
   );
 }
-

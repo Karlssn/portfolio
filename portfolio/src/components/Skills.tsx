@@ -1,33 +1,39 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { skills } from '../data/experience';
 import { useSectionProgress } from '../hooks/useScrollProgress';
+import { useIsDesktop } from '../hooks/useIsDesktop';
+import { cssHslToHex } from '../lib/color';
 
 const SKILLS_SECTION_VH = 360;
 
 /**
  * Small Vanta trunk background in the bottom-left corner.
- * Position/scale: -left-[95vh] etc. keeps the effect in the corner without covering the title.
+ * Only used on desktop (md+). Colors are read from CSS variables so they follow theme.
  */
 function TrunkCorner() {
   const ref = useRef<HTMLDivElement | null>(null);
   const mountedRef = useRef(true);
+  const destroyRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
     const el = ref.current;
     if (!el) return;
 
-    let destroy: (() => void) | undefined;
+    let cancelled = false;
 
     const run = async () => {
       const TRUNK = (await import('vanta/dist/vanta.trunk.min')).default;
       const p5 = (await import('p5')).default;
-      if (!mountedRef.current || !ref.current) return;
+      if (cancelled || !mountedRef.current || !ref.current) return;
+      const root = document.documentElement;
+      const bg = getComputedStyle(root).getPropertyValue('--background').trim();
+      const primary = getComputedStyle(root).getPropertyValue('--primary').trim();
       const instance = TRUNK({
         el: ref.current,
         p5,
-        color: 0xfacc15,
-        backgroundColor: 0x0f0f0f,
+        color: cssHslToHex(primary),
+        backgroundColor: cssHslToHex(bg),
         backgroundAlpha: 1.0,
         spacing: 0,
         chaos: 1,
@@ -37,14 +43,20 @@ function TrunkCorner() {
       };
     };
 
-    run().then((d) => {
+    const promise = run();
+    promise.then((d) => {
+      if (d) destroyRef.current = d;
       if (!mountedRef.current && typeof d === 'function') d();
-      else destroy = d;
     });
 
     return () => {
+      cancelled = true;
       mountedRef.current = false;
-      if (typeof destroy === 'function') destroy();
+      destroyRef.current?.();
+      destroyRef.current = null;
+      promise.then((d) => {
+        if (d && !mountedRef.current) d();
+      });
     };
   }, []);
 
@@ -58,22 +70,44 @@ function TrunkCorner() {
 
 /** Opacity 0..1 when section is in view, for fixed overlay visibility. */
 function sectionVisibility(progress: number): number {
-  // Fade in at the start; stay fully visible while in section; fade out once scrolled past (progress >= 1).
   const FADE_IN_END = 0.08;
-
   if (progress <= 0) return 0;
   if (progress >= 1) return 0;
-
-  if (progress < FADE_IN_END) {
-    return progress / FADE_IN_END;
-  }
-
+  if (progress < FADE_IN_END) return progress / FADE_IN_END;
   return 1;
 }
 
-const GAP_PX = 8; // gap-2
+const GAP_PX = 8;
 
-export function Skills() {
+/** Mobile: simple static list, no scroll-driven layout. */
+function SkillsMobile() {
+  return (
+    <section
+      className="relative py-16 sm:py-20 min-h-0"
+      style={{ minHeight: '50vh' }}
+      aria-label="Kompetenser"
+    >
+      <div className="container mx-auto px-4 sm:px-6">
+        <h2 className="text-3xl font-bold text-foreground mb-8">
+          Tekniker jag arbetar med
+        </h2>
+        <div className="flex flex-col gap-3">
+          {skills.map((skillName) => (
+            <div
+              key={skillName}
+              className="text-xl font-semibold text-foreground"
+            >
+              {skillName}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Desktop: scroll-driven fixed overlay with Vanta and sliding list. */
+function SkillsDesktop() {
   const sectionRef = useRef<HTMLElement | null>(null);
   const curtainRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -116,7 +150,6 @@ export function Skills() {
     const activeCenter = activeIndex * rowHeight + rowHeight / 2;
     const translateY = centerY - activeCenter;
 
-    // Defer so the browser paints the current position first; then the transition runs to the new one.
     const raf = requestAnimationFrame(() => {
       setListTranslateY(translateY);
     });
@@ -132,14 +165,12 @@ export function Skills() {
       style={{ minHeight: `${SKILLS_SECTION_VH}vh` }}
       aria-label="Kompetenser"
     >
-      {/* Lenis-driven fixed overlay: title and curtain stay in viewport while section scrolls */}
       <div
         className="fixed inset-0 z-10 pointer-events-none flex flex-col md:flex-row justify-center px-4 md:px-8 lg:px-12"
         style={{ opacity: visible }}
         aria-hidden={visible < 0.5}
       >
         <div className="pointer-events-auto w-full md:w-5/12 lg:max-w-xl md:pr-10 md:self-center md:-mt-[37vh]">
-          {/* Trunk Vanta background in the bottom-left corner */}
           <TrunkCorner />
           <div className="relative">
             <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
@@ -188,3 +219,7 @@ export function Skills() {
   );
 }
 
+export function Skills() {
+  const isDesktop = useIsDesktop();
+  return isDesktop ? <SkillsDesktop /> : <SkillsMobile />;
+}

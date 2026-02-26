@@ -84,6 +84,13 @@ export const experiences: Experience[] = [
   },
 ];
 
+/** Tailwind border-l-* class per employer (for experience cards). Add new employers here. */
+export const EMPLOYER_BORDER_CLASS: Record<string, string> = {
+  'Dormy Golf': 'border-l-primary',
+  'B3 Consulting Group': 'border-l-orange-500',
+  'Nexer Group': 'border-l-rose-500',
+};
+
 export const employers = [
   { name: 'Dormy Golf', role: 'Senior Systemutvecklare', period: '2024 – Pågående' },
   { name: 'B3 Consulting Group', role: 'IT-konsult', period: '2022 – 2024' },

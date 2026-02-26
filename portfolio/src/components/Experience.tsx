@@ -1,26 +1,138 @@
-import { useRef } from 'react';
-import { experiences } from '../data/experience';
+import { useRef, useState } from 'react';
+import { experiences, EMPLOYER_BORDER_CLASS } from '../data/experience';
 import { useSectionProgress } from '../hooks/useScrollProgress';
+import { useIsDesktop } from '../hooks/useIsDesktop';
 import type { Experience as ExperienceItem } from '../data/experience';
 import { cn } from '../lib/utils';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+
+function getEmployerBorder(employer: string) {
+  return EMPLOYER_BORDER_CLASS[employer] ?? 'border-l-border';
+}
+
+function employerId(employer: string) {
+  return `experience-${employer.replace(/\s+/g, '-').toLowerCase()}`;
+}
+
+/** Group experiences by employer, preserving order of first occurrence. O(n). */
+function groupByEmployer(items: ExperienceItem[]): { employer: string; items: ExperienceItem[] }[] {
+  const order: string[] = [];
+  const byEmployer = new Map<string, ExperienceItem[]>();
+  for (const exp of items) {
+    if (!byEmployer.has(exp.employer)) {
+      order.push(exp.employer);
+      byEmployer.set(exp.employer, []);
+    }
+    byEmployer.get(exp.employer)!.push(exp);
+  }
+  return order.map((employer) => ({ employer, items: byEmployer.get(employer)! }));
+}
+
+const employerGroups = groupByEmployer(experiences);
+
+// ---- Mobile: accordion ----
+
+function ExperienceCardContent({ exp }: { exp: ExperienceItem }) {
+  const borderClass = getEmployerBorder(exp.employer);
+  return (
+    <div
+      className={cn(
+        'bg-card border border-border rounded-xl border-l-4 overflow-hidden',
+        borderClass
+      )}
+    >
+      <div className="px-4 sm:px-5 py-3 border-b border-border/80">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="text-sm font-bold text-foreground">{exp.company}</h3>
+          <span className="text-xs text-muted-foreground">{exp.period}</span>
+        </div>
+        <p className="text-xs text-primary font-medium mt-0.5">{exp.role}</p>
+        <p className="text-xs text-muted-foreground">{exp.employer}</p>
+      </div>
+      <div className="px-4 sm:px-5 py-3">
+        <p className="text-xs text-muted-foreground leading-relaxed mb-2">
+          {exp.description}
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {exp.technologies.map((tech) => (
+            <span
+              key={tech}
+              className="text-xs px-1.5 py-0.5 bg-secondary text-secondary-foreground rounded"
+            >
+              {tech}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExperienceMobile() {
+  const [openEmployer, setOpenEmployer] = useState<string | null>(employerGroups[0]?.employer ?? null);
+
+  return (
+    <div className="relative bg-muted/40 py-16 sm:py-20">
+      <div className="container mx-auto px-4 sm:px-6 max-w-2xl">
+        <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-8">
+          Erfarenhet
+        </h2>
+        <div className="space-y-2">
+          {employerGroups.map(({ employer, items }) => {
+            const isOpen = openEmployer === employer;
+            return (
+              <div
+                key={employer}
+                className={cn(
+                  'bg-card/80 border border-border rounded-xl overflow-hidden',
+                  isOpen && 'ring-1 ring-primary/20'
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenEmployer(isOpen ? null : employer)}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-secondary/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+                  aria-expanded={isOpen}
+                  aria-controls={employerId(employer)}
+                >
+                  <div className="flex flex-col items-start gap-0.5">
+                    <span className="text-sm font-semibold text-foreground">{employer}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {items.length} uppdrag
+                    </span>
+                  </div>
+                  {isOpen ? (
+                    <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
+                  )}
+                </button>
+                {isOpen && (
+                  <div
+                    id={employerId(employer)}
+                    className="px-2 py-3 space-y-3 border-t border-border/80"
+                  >
+                    {items.map((exp) => (
+                      <ExperienceCardContent key={exp.id} exp={exp} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Desktop: slide-in cards ----
 
 const NUM_CARDS = experiences.length;
 const VH_PER_CARD = 55;
-const VH_CARD_PHASE = NUM_CARDS * VH_PER_CARD; // scroll while cards animate (385vh)
-const SECTION_HEIGHT_VH = 100 + VH_CARD_PHASE; // sticky title + cards scroll
+const VH_CARD_PHASE = NUM_CARDS * VH_PER_CARD;
+const SECTION_HEIGHT_VH = 100 + VH_CARD_PHASE;
 
-/** Employer → border color (warm tones, distinct but cohesive) */
-const EMPLOYER_BORDER: Record<string, string> = {
-  'Dormy Golf': 'border-l-primary',
-  'B3 Consulting Group': 'border-l-orange-500',
-  'Nexer Group': 'border-l-rose-500',
-};
-
-function getEmployerBorder(employer: string) {
-  return EMPLOYER_BORDER[employer] ?? 'border-l-border';
-}
-
-/** Ease out: 0→1 with smooth end */
 function easeOut(t: number): number {
   return 1 - (1 - t) * (1 - t);
 }
@@ -32,22 +144,18 @@ function cardSlideProgress(sectionProgress: number, index: number): number {
   return Math.max(0, Math.min(1, t));
 }
 
-
 const SLIDE_IN_OFFSET_VW = 100;
-const STACK_OFFSET_PX = 20;   // vertical offset per card in the stack
-const STACK_OFFSET_X_PX = 14; // horizontal offset per card when landed (one direction)
-const START_Y_VH_SPREAD = 50; // total vertical spread (vh) for fly-in start positions
-
-/** Fixed card width (38rem) for consistent stacked layout; max-w-[95vw] caps on small viewports. */
+const STACK_OFFSET_PX = 20;
+const STACK_OFFSET_X_PX = 14;
+const START_Y_VH_SPREAD = 50;
 const CARD_WIDTH_CLASS = 'w-[38rem] max-w-[95vw]';
 
-/** Start Y (vh) per card so they fly in from different heights from the left */
 function startYVh(index: number): number {
   if (NUM_CARDS <= 1) return 0;
   return (index / (NUM_CARDS - 1)) * START_Y_VH_SPREAD - START_Y_VH_SPREAD / 2;
 }
 
-function ExperienceCard({
+function ExperienceSlideCard({
   exp,
   index,
   slideProgress,
@@ -61,19 +169,16 @@ function ExperienceCard({
   const startY = startYVh(index);
   const translateX = `calc(${(1 - eased) * SLIDE_IN_OFFSET_VW}vw + ${eased * stackOffsetX}px)`;
   const translateY = `calc(${(1 - eased) * startY}vh + ${eased * (-index * STACK_OFFSET_PX)}px)`;
-  const zIndex = index + 1;
   const borderClass = getEmployerBorder(exp.employer);
 
   return (
     <div
       className="absolute inset-0 flex items-center justify-center px-6 pointer-events-none"
-      style={{ zIndex }}
+      style={{ zIndex: index + 1 }}
     >
       <div
         className={cn(CARD_WIDTH_CLASS, 'pointer-events-auto will-change-transform flex-shrink-0')}
-        style={{
-          transform: `translate(${translateX}, ${translateY})`,
-        }}
+        style={{ transform: `translate(${translateX}, ${translateY})` }}
       >
         <div
           className={cn(
@@ -110,18 +215,16 @@ function ExperienceCard({
   );
 }
 
-export function Experience() {
+function ExperienceDesktop() {
   const sectionRef = useRef<HTMLElement>(null);
   const sectionProgress = useSectionProgress(sectionRef, SECTION_HEIGHT_VH);
 
   return (
     <section
-      id="experience"
       ref={sectionRef}
       className="relative bg-muted/40"
       style={{ minHeight: `${SECTION_HEIGHT_VH}vh` }}
     >
-      {/* Sticky: title + cards so both stay visible while cards appear */}
       <div className="sticky top-0 left-0 right-0 h-screen z-10 min-h-screen flex flex-col">
         <div className="flex-shrink-0 pt-20 pb-4 px-6">
           <div className="container mx-auto max-w-2xl">
@@ -134,7 +237,7 @@ export function Experience() {
           {experiences.map((exp, index) => {
             const progress = cardSlideProgress(sectionProgress, index);
             return (
-              <ExperienceCard
+              <ExperienceSlideCard
                 key={exp.id}
                 exp={exp}
                 index={index}
@@ -144,9 +247,16 @@ export function Experience() {
           })}
         </div>
       </div>
-
-      {/* Spacer so sticky stays for full card phase (385vh scroll) */}
       <div style={{ height: `${VH_CARD_PHASE}vh` }} aria-hidden />
+    </section>
+  );
+}
+
+export function Experience() {
+  const isDesktop = useIsDesktop();
+  return (
+    <section id="experience">
+      {isDesktop ? <ExperienceDesktop /> : <ExperienceMobile />}
     </section>
   );
 }
