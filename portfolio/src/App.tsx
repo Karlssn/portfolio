@@ -4,6 +4,9 @@ import { Hero, Experience, Education, Contact, Skills, ScrollToTop } from './com
 const lenisOptions = {
   duration: 1.2,
   smoothWheel: true,
+  wheelMultiplier: 0.6,
+  touchMultiplier: 0.8,
+  lerp: 0.08,
 };
 
 function App() {

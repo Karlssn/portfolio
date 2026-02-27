@@ -50,6 +50,7 @@
   }
   html {
     scroll-behavior: auto; /* Lenis handles smooth scroll */
+    overflow-x: hidden; /* Prevent unintended horizontal scrolling */
   }
 }
 

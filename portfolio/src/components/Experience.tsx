@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { experiences, EMPLOYER_BORDER_CLASS } from '../data/experience';
 import { useSectionProgress } from '../hooks/useScrollProgress';
 import { useIsDesktop } from '../hooks/useIsDesktop';
@@ -130,6 +130,9 @@ function ExperienceMobile() {
 
 const NUM_CARDS = experiences.length;
 const VH_PER_CARD = 55;
+// Portion of each card's scroll slice used for the actual fly-in animation;
+// the remainder is "rest" time where the card stays stacked before/after.
+const CARD_SCROLL_WINDOW_VH = 35;
 const VH_CARD_PHASE = NUM_CARDS * VH_PER_CARD;
 const SECTION_HEIGHT_VH = 100 + VH_CARD_PHASE;
 
@@ -138,8 +141,10 @@ function easeOut(t: number): number {
 }
 
 function cardSlideProgress(sectionProgress: number, index: number): number {
-  const start = (index * VH_PER_CARD) / SECTION_HEIGHT_VH;
-  const end = ((index + 1) * VH_PER_CARD) / SECTION_HEIGHT_VH;
+  const windowStartVh = index * VH_PER_CARD;
+  const windowEndVh = windowStartVh + CARD_SCROLL_WINDOW_VH;
+  const start = windowStartVh / SECTION_HEIGHT_VH;
+  const end = windowEndVh / SECTION_HEIGHT_VH;
   const t = (sectionProgress - start) / (end - start);
   return Math.max(0, Math.min(1, t));
 }
@@ -173,12 +178,15 @@ function ExperienceSlideCard({
 
   return (
     <div
-      className="absolute inset-0 flex items-center justify-center px-6 pointer-events-none"
+      className="absolute inset-0 flex items-center justify-center px-6 pt-10 pointer-events-none"
       style={{ zIndex: index + 1 }}
     >
       <div
         className={cn(CARD_WIDTH_CLASS, 'pointer-events-auto will-change-transform flex-shrink-0')}
-        style={{ transform: `translate(${translateX}, ${translateY})` }}
+        style={{
+          transform: `translate(${translateX}, ${translateY})`,
+          transition: 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)',
+        }}
       >
         <div
           className={cn(
@@ -218,6 +226,33 @@ function ExperienceSlideCard({
 function ExperienceDesktop() {
   const sectionRef = useRef<HTMLElement>(null);
   const sectionProgress = useSectionProgress(sectionRef, SECTION_HEIGHT_VH);
+  const [cardTriggered, setCardTriggered] = useState<boolean[]>(() =>
+    experiences.map(() => false)
+  );
+
+  useEffect(() => {
+    setCardTriggered((prev) =>
+      prev.map((triggered, index) => {
+        const windowStartVh = index * VH_PER_CARD;
+        const start = windowStartVh / SECTION_HEIGHT_VH;
+        const hysteresis = 0.015; // small buffer to avoid flicker
+
+        // When scrolling down past the start of this card's window, let it
+        // auto-complete to the stacked position.
+        if (sectionProgress >= start + hysteresis) {
+          return true;
+        }
+
+        // When scrolling back up above the start (with some buffer),
+        // allow the card to animate back out.
+        if (sectionProgress <= start - hysteresis) {
+          return false;
+        }
+
+        return triggered;
+      })
+    );
+  }, [sectionProgress]);
 
   return (
     <section
@@ -225,17 +260,18 @@ function ExperienceDesktop() {
       className="relative bg-muted/40"
       style={{ minHeight: `${SECTION_HEIGHT_VH}vh` }}
     >
-      <div className="sticky top-0 left-0 right-0 h-screen z-10 min-h-screen flex flex-col">
-        <div className="flex-shrink-0 pt-20 pb-4 px-6">
-          <div className="container mx-auto max-w-2xl">
-            <h2 className="text-3xl lg:text-4xl font-bold text-foreground">
-              Erfarenhet
-            </h2>
+      <div className="sticky top-0 left-0 right-0 h-screen z-10 min-h-screen flex px-6">
+        <h2 className="sr-only">Uppdrag</h2>
+        <div className="hidden md:flex flex-1 items-center justify-center">
+          <div className="flex flex-col items-center text-2xl md:text-4xl lg:text-5xl font-semibold tracking-[0.4em] text-foreground uppercase">
+            <span>Upp</span>
+            <span>drag</span>
           </div>
         </div>
-        <div className="relative flex-1 min-h-0">
+        <div className="relative flex-[2] min-h-0 pl-8">
           {experiences.map((exp, index) => {
-            const progress = cardSlideProgress(sectionProgress, index);
+            const baseProgress = cardSlideProgress(sectionProgress, index);
+            const progress = cardTriggered[index] ? 1 : baseProgress;
             return (
               <ExperienceSlideCard
                 key={exp.id}
