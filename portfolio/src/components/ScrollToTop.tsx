@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLenis } from 'lenis/react';
+import { setScrollLockOverride } from '../lib/scrollLock';
 
 const SHOW_AFTER_PX = 400;
 
@@ -25,7 +26,10 @@ export function ScrollToTop() {
 
   const scrollToTop = () => {
     if (lenis) {
+      setScrollLockOverride(true);
+      lenis.start();
       lenis.scrollTo(0, { duration: 1 });
+      window.setTimeout(() => setScrollLockOverride(false), 1000);
     } else {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }

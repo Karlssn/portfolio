@@ -5,6 +5,8 @@ import { useIsDesktop } from '../hooks/useIsDesktop';
 import type { Experience as ExperienceItem } from '../data/experience';
 import { cn } from '../lib/utils';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useLenis } from 'lenis/react';
+import { isScrollLockOverridden } from '../lib/scrollLock';
 
 function getEmployerBorder(employer: string) {
   return EMPLOYER_BORDER_CLASS[employer] ?? 'border-l-border';
@@ -129,24 +131,12 @@ function ExperienceMobile() {
 // ---- Desktop: slide-in cards ----
 
 const NUM_CARDS = experiences.length;
-const VH_PER_CARD = 55;
-// Portion of each card's scroll slice used for the actual fly-in animation;
-// the remainder is "rest" time where the card stays stacked before/after.
-const CARD_SCROLL_WINDOW_VH = 35;
+const VH_PER_CARD = 10;
 const VH_CARD_PHASE = NUM_CARDS * VH_PER_CARD;
-const SECTION_HEIGHT_VH = 100 + VH_CARD_PHASE;
+const SECTION_HEIGHT_VH = 80 + VH_CARD_PHASE;
 
 function easeOut(t: number): number {
   return 1 - (1 - t) * (1 - t);
-}
-
-function cardSlideProgress(sectionProgress: number, index: number): number {
-  const windowStartVh = index * VH_PER_CARD;
-  const windowEndVh = windowStartVh + CARD_SCROLL_WINDOW_VH;
-  const start = windowStartVh / SECTION_HEIGHT_VH;
-  const end = windowEndVh / SECTION_HEIGHT_VH;
-  const t = (sectionProgress - start) / (end - start);
-  return Math.max(0, Math.min(1, t));
 }
 
 const SLIDE_IN_OFFSET_VW = 100;
@@ -158,6 +148,18 @@ const CARD_WIDTH_CLASS = 'w-[38rem] max-w-[95vw]';
 function startYVh(index: number): number {
   if (NUM_CARDS <= 1) return 0;
   return (index / (NUM_CARDS - 1)) * START_Y_VH_SPREAD - START_Y_VH_SPREAD / 2;
+}
+
+function cardSlideProgress(sectionProgress: number, index: number): number {
+  const windowStartVh = index * VH_PER_CARD;
+  const windowEndVh = windowStartVh + VH_PER_CARD;
+  const start = windowStartVh / SECTION_HEIGHT_VH;
+  const end = windowEndVh / SECTION_HEIGHT_VH;
+  const t = (sectionProgress - start) / (end - start);
+  const raw = Math.max(0, Math.min(1, t));
+  // As soon as we enter the window (>0), snap to 1 so the CSS transition
+  // drives the animation and avoids a long "nothing happens" region.
+  return raw === 0 ? 0 : 1;
 }
 
 function ExperienceSlideCard({
@@ -185,7 +187,7 @@ function ExperienceSlideCard({
         className={cn(CARD_WIDTH_CLASS, 'pointer-events-auto will-change-transform flex-shrink-0')}
         style={{
           transform: `translate(${translateX}, ${translateY})`,
-          transition: 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)',
+          transition: 'transform 1.4s cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >
         <div
@@ -226,33 +228,96 @@ function ExperienceSlideCard({
 function ExperienceDesktop() {
   const sectionRef = useRef<HTMLElement>(null);
   const sectionProgress = useSectionProgress(sectionRef, SECTION_HEIGHT_VH);
-  const [cardTriggered, setCardTriggered] = useState<boolean[]>(() =>
-    experiences.map(() => false)
-  );
+  const lenis = useLenis();
+  const [cardProgress, setCardProgress] = useState<number[]>(() => experiences.map(() => 0));
+  const animTimeoutRef = useRef<number | null>(null);
+  const isAnimatingRef = useRef(false);
+  const lastSectionProgressRef = useRef(0);
 
+  // Step cards one-by-one based on scroll direction, with binary states (0 or 1).
   useEffect(() => {
-    setCardTriggered((prev) =>
-      prev.map((triggered, index) => {
-        const windowStartVh = index * VH_PER_CARD;
-        const start = windowStartVh / SECTION_HEIGHT_VH;
-        const hysteresis = 0.015; // small buffer to avoid flicker
+    // When scroll-lock override is active (e.g. scroll-to-top), just sync directly.
+    if (isScrollLockOverridden()) {
+      setCardProgress(experiences.map((_, index) => cardSlideProgress(sectionProgress, index)));
+      lastSectionProgressRef.current = sectionProgress;
+      return;
+    }
 
-        // When scrolling down past the start of this card's window, let it
-        // auto-complete to the stacked position.
-        if (sectionProgress >= start + hysteresis) {
-          return true;
+    const last = lastSectionProgressRef.current;
+    const direction: 'down' | 'up' | 'none' =
+      sectionProgress > last ? 'down' : sectionProgress < last ? 'up' : 'none';
+    lastSectionProgressRef.current = sectionProgress;
+
+    if (direction === 'none' || isAnimatingRef.current) {
+      return;
+    }
+
+    setCardProgress((prev) => {
+      const target = experiences.map((_, index) => cardSlideProgress(sectionProgress, index));
+
+      const entering: number[] = [];
+      const exiting: number[] = [];
+
+      for (let i = 0; i < target.length; i++) {
+        if (target[i] === prev[i]) continue;
+        if (target[i] > prev[i]) {
+          entering.push(i);
+        } else {
+          exiting.push(i);
         }
+      }
 
-        // When scrolling back up above the start (with some buffer),
-        // allow the card to animate back out.
-        if (sectionProgress <= start - hysteresis) {
-          return false;
-        }
+      let chosenIndex = -1;
 
-        return triggered;
-      })
-    );
+      if (direction === 'down') {
+        if (entering.length === 0) return prev;
+        chosenIndex = Math.min(...entering);
+      } else {
+        if (exiting.length === 0) return prev;
+        chosenIndex = Math.max(...exiting);
+      }
+
+      const next = [...prev];
+      next[chosenIndex] = target[chosenIndex];
+      return next;
+    });
   }, [sectionProgress]);
+
+  // Lock Lenis scroll while a card animation is in progress,
+  // unless a global override is active (e.g. scroll-to-top button).
+  useEffect(() => {
+    if (!lenis || isScrollLockOverridden()) return;
+
+    // Any change in cardProgress means a new animation step.
+    if (animTimeoutRef.current !== null) {
+      window.clearTimeout(animTimeoutRef.current);
+    } else {
+      isAnimatingRef.current = true;
+      lenis.stop();
+    }
+
+    animTimeoutRef.current = window.setTimeout(() => {
+      animTimeoutRef.current = null;
+      isAnimatingRef.current = false;
+      if (!isScrollLockOverridden()) {
+        lenis.start();
+      }
+    }, 1400); // match CSS transition duration
+  }, [cardProgress, lenis]);
+
+  // Cleanup on unmount: clear timer and re-enable scroll.
+  useEffect(() => {
+    return () => {
+      if (animTimeoutRef.current !== null) {
+        window.clearTimeout(animTimeoutRef.current);
+        animTimeoutRef.current = null;
+      }
+      isAnimatingRef.current = false;
+      if (lenis) {
+        lenis.start();
+      }
+    };
+  }, [lenis]);
 
   return (
     <section
@@ -270,8 +335,7 @@ function ExperienceDesktop() {
         </div>
         <div className="relative flex-[2] min-h-0 pl-8">
           {experiences.map((exp, index) => {
-            const baseProgress = cardSlideProgress(sectionProgress, index);
-            const progress = cardTriggered[index] ? 1 : baseProgress;
+            const progress = cardProgress[index] ?? 0;
             return (
               <ExperienceSlideCard
                 key={exp.id}

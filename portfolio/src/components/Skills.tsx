@@ -4,7 +4,9 @@ import { useSectionProgress } from '../hooks/useScrollProgress';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { cssHslToHex } from '../lib/color';
 
-const SKILLS_SECTION_VH = 360;
+const SKILLS_SECTION_VH = 380;
+const SKILLS_SCROLL_START = 0.1;
+const SKILLS_SCROLL_END = 0.9;
 
 /**
  * Small Vanta trunk background in the bottom-left corner.
@@ -70,10 +72,14 @@ function TrunkCorner() {
 
 /** Opacity 0..1 when section is in view, for fixed overlay visibility. */
 function sectionVisibility(progress: number): number {
-  const FADE_IN_END = 0.08;
-  if (progress <= 0) return 0;
+  const FADE_IN_START = SKILLS_SCROLL_START;
+  const FADE_IN_END = SKILLS_SCROLL_START + 0.08;
+
+  if (progress <= FADE_IN_START) return 0;
   if (progress >= 1) return 0;
-  if (progress < FADE_IN_END) return progress / FADE_IN_END;
+  if (progress < FADE_IN_END) {
+    return (progress - FADE_IN_START) / (FADE_IN_END - FADE_IN_START);
+  }
   return 1;
 }
 
@@ -115,30 +121,33 @@ function SkillsDesktop() {
 
   const progress = useSectionProgress(sectionRef, SKILLS_SECTION_VH);
 
-  const { currentSkill, surrounding } = useMemo(() => {
+  const { currentIndex, position } = useMemo(() => {
     if (skills.length === 0) {
-      return { currentSkill: '', surrounding: [] as string[] };
+      return {
+        currentIndex: 0,
+        position: 0,
+      };
     }
-    const index = Math.min(
-      skills.length - 1,
-      Math.max(0, Math.floor(progress * (skills.length + 2)))
-    );
-    const current = skills[index] ?? skills[skills.length - 1];
-    const start = Math.max(0, index - 4);
-    const end = Math.min(skills.length, index + 6);
+
+    const range = SKILLS_SCROLL_END - SKILLS_SCROLL_START;
+    const normalized =
+      range <= 0
+        ? 0
+        : Math.max(0, Math.min(1, (progress - SKILLS_SCROLL_START) / range));
+
+    const pos = normalized * (skills.length - 1);
+    const index = Math.round(pos);
+
     return {
-      currentSkill: current,
-      surrounding: skills.slice(start, end),
+      currentIndex: index,
+      position: pos,
     };
   }, [progress]);
 
   useLayoutEffect(() => {
     const container = curtainRef.current;
     const list = listRef.current;
-    if (!container || !list || surrounding.length === 0) return;
-
-    const activeIndex = surrounding.findIndex((s) => s === currentSkill);
-    if (activeIndex < 0) return;
+    if (!container || !list || skills.length === 0) return;
 
     const firstRow = list.querySelector('[data-skill-row]');
     const containerHeight = container.offsetHeight;
@@ -147,14 +156,14 @@ function SkillsDesktop() {
       : 40;
 
     const centerY = containerHeight / 2;
-    const activeCenter = activeIndex * rowHeight + rowHeight / 2;
+    const activeCenter = position * rowHeight + rowHeight / 2;
     const translateY = centerY - activeCenter;
 
     const raf = requestAnimationFrame(() => {
       setListTranslateY(translateY);
     });
     return () => cancelAnimationFrame(raf);
-  }, [surrounding, currentSkill]);
+  }, [position]);
 
   const visible = sectionVisibility(progress);
 
@@ -186,14 +195,19 @@ function SkillsDesktop() {
           >
             <div
               ref={listRef}
-              className="relative flex flex-col gap-2 transition-[transform] duration-700 ease-out"
+              className="relative flex flex-col gap-2 transition-[transform] duration-300 ease-out"
               style={{ transform: `translateY(${listTranslateY}px)` }}
             >
-              {surrounding.map((skillName, index) => {
-                const isCurrent = skillName === currentSkill;
-                const isEdge =
-                  index === 0 || index === surrounding.length - 1;
-                const opacity = isCurrent ? 1 : isEdge ? 0.35 : 0.9;
+              {skills.map((skillName, index) => {
+                const distance = Math.abs(index - currentIndex);
+
+                let opacity = 0.25;
+                if (distance === 0) opacity = 1;
+                else if (distance === 1) opacity = 0.85;
+                else if (distance === 2) opacity = 0.6;
+                else if (distance === 3) opacity = 0.4;
+
+                const isCurrent = index === currentIndex;
 
                 return (
                   <div
