@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Download } from 'lucide-react';
 import { reveal } from '../hooks/useScrollProgress';
 import profilbild from '../assets/profilbild-b3.png';
@@ -10,6 +10,21 @@ const HERO_REVEAL_DELAY_MS = 1000;
 const HERO_REVEAL_DURATION_MS = 1800;
 
 export function Hero() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [heroInView, setHeroInView] = useState(true);
+
+  // Hide scroll hint as soon as user scrolls past the hero (leaves first page)
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => setHeroInView(entry.isIntersecting),
+      { threshold: 1 }  // disappear when hero is no longer 100% visible
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   // Show hero content after 1s, then animate reveal over 1.8s with staggered timing
   const [contentRevealProgress, setContentRevealProgress] = useState(0);
   useEffect(() => {
@@ -38,6 +53,7 @@ export function Hero() {
   return (
     <>
       <section
+        ref={sectionRef}
         className="relative bg-background flex flex-col justify-center min-h-[100vh] px-6 pt-20 pb-16"
         style={{ minHeight: `${HERO_ZONE_VH}vh` }}
       >
@@ -106,10 +122,10 @@ export function Hero() {
           </div>
         </div>
 
-        {/* Scroll hint at bottom of hero */}
+        {/* Scroll hint – fixed to viewport bottom so it's visible on mobile without scrolling */}
         <div
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 transition-opacity duration-500 z-10"
-          style={{ opacity: scrollHintVisible }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 transition-opacity duration-500 z-10 pointer-events-none"
+          style={{ opacity: heroInView ? scrollHintVisible : 0 }}
           aria-hidden
         >
           <span className="text-sm text-muted-foreground">Scrolla för mer</span>

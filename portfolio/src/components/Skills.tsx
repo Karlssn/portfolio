@@ -72,8 +72,8 @@ function TrunkCorner() {
 
 /** Opacity 0..1 when section is in view, for fixed overlay visibility. */
 function sectionVisibility(progress: number): number {
-  const FADE_IN_START = SKILLS_SCROLL_START;
-  const FADE_IN_END = SKILLS_SCROLL_START + 0.08;
+  const FADE_IN_START = 0; // Start fade as soon as black section becomes fullscreen
+  const FADE_IN_END = 0.08;
 
   if (progress <= FADE_IN_START) return 0;
   if (progress >= 1) return 0;

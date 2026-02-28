@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { experiences, EMPLOYER_BORDER_CLASS } from '../data/experience';
 import { useSectionProgress } from '../hooks/useScrollProgress';
 import { useIsDesktop } from '../hooks/useIsDesktop';
@@ -72,6 +72,25 @@ function ExperienceCardContent({ exp }: { exp: ExperienceItem }) {
 
 function ExperienceMobile() {
   const [openEmployer, setOpenEmployer] = useState<string | null>(employerGroups[0]?.employer ?? null);
+  const accordionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const lenis = useLenis();
+  const prevOpenRef = useRef<string | null>(employerGroups[0]?.employer ?? null);
+
+  // When opening a different accordion, scroll to its top so user sees the new content
+  useLayoutEffect(() => {
+    if (openEmployer === null || openEmployer === prevOpenRef.current) return;
+    prevOpenRef.current = openEmployer;
+    const el = accordionRefs.current.get(openEmployer);
+    if (!el) return;
+
+    const scrollY = lenis ? lenis.scroll : window.scrollY;
+    const top = el.getBoundingClientRect().top + scrollY;
+    if (lenis) {
+      lenis.scrollTo(top, { duration: 0.8 });
+    } else {
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  }, [openEmployer, lenis]);
 
   return (
     <div className="relative bg-muted/40 py-16 sm:py-20">
@@ -85,6 +104,9 @@ function ExperienceMobile() {
             return (
               <div
                 key={employer}
+                ref={(el) => {
+                  if (el) accordionRefs.current.set(employer, el);
+                }}
                 className={cn(
                   'bg-card/80 border border-border rounded-xl overflow-hidden',
                   isOpen && 'ring-1 ring-primary/20'
@@ -114,7 +136,7 @@ function ExperienceMobile() {
                     id={employerId(employer)}
                     className="px-2 py-3 space-y-3 border-t border-border/80"
                   >
-                    {items.map((exp) => (
+                    {[...items].reverse().map((exp) => (
                       <ExperienceCardContent key={exp.id} exp={exp} />
                     ))}
                   </div>
@@ -128,71 +150,104 @@ function ExperienceMobile() {
   );
 }
 
-// ---- Desktop: slide-in cards ----
+// ---- Desktop: employer groups, stacked cards with hover-to-maximize ----
 
-const NUM_CARDS = experiences.length;
-const VH_PER_CARD = 10;
-const VH_CARD_PHASE = NUM_CARDS * VH_PER_CARD;
-const SECTION_HEIGHT_VH = 80 + VH_CARD_PHASE;
+const NUM_GROUPS = employerGroups.length;
+const VH_PER_GROUP = 12;
+const VH_GROUP_PHASE = NUM_GROUPS * VH_PER_GROUP;
+const SECTION_HEIGHT_VH = 80 + VH_GROUP_PHASE;
 
 function easeOut(t: number): number {
   return 1 - (1 - t) * (1 - t);
 }
 
 const SLIDE_IN_OFFSET_VW = 100;
-const STACK_OFFSET_PX = 20;
-const STACK_OFFSET_X_PX = 14;
-const START_Y_VH_SPREAD = 50;
+const STACK_OFFSET_PX = 40;
+const STACK_OFFSET_X_PX = 32;
+const EXIT_TRANSLATE_Y_VH = 80;
+const EXIT_ANIMATION_DURATION_MS = 900;
+const START_Y_VH_SPREAD = 40;
 const CARD_WIDTH_CLASS = 'w-[38rem] max-w-[95vw]';
+const HOVER_Z_OFFSET = 100;
 
-function startYVh(index: number): number {
-  if (NUM_CARDS <= 1) return 0;
-  return (index / (NUM_CARDS - 1)) * START_Y_VH_SPREAD - START_Y_VH_SPREAD / 2;
+function startYVhForGroup(groupIndex: number): number {
+  if (NUM_GROUPS <= 1) return 0;
+  return (groupIndex / (NUM_GROUPS - 1)) * START_Y_VH_SPREAD - START_Y_VH_SPREAD / 2;
 }
 
-function cardSlideProgress(sectionProgress: number, index: number): number {
-  const windowStartVh = index * VH_PER_CARD;
-  const windowEndVh = windowStartVh + VH_PER_CARD;
+function groupSlideProgress(sectionProgress: number, groupIndex: number): number {
+  const windowStartVh = groupIndex * VH_PER_GROUP;
+  const windowEndVh = windowStartVh + VH_PER_GROUP;
   const start = windowStartVh / SECTION_HEIGHT_VH;
   const end = windowEndVh / SECTION_HEIGHT_VH;
   const t = (sectionProgress - start) / (end - start);
   const raw = Math.max(0, Math.min(1, t));
-  // As soon as we enter the window (>0), snap to 1 so the CSS transition
-  // drives the animation and avoids a long "nothing happens" region.
   return raw === 0 ? 0 : 1;
 }
 
 function ExperienceSlideCard({
   exp,
-  index,
+  groupIndex,
+  cardIndexInGroup,
+  totalInGroup,
   slideProgress,
+  isHovered,
+  onHoverChange,
+  isExiting,
+  exitProgress,
 }: {
   exp: ExperienceItem;
-  index: number;
+  groupIndex: number;
+  cardIndexInGroup: number;
+  totalInGroup: number;
   slideProgress: number;
+  isHovered: boolean;
+  onHoverChange: (id: string | null) => void;
+  isExiting?: boolean;
+  exitProgress?: number;
 }) {
   const eased = easeOut(Math.min(1, slideProgress));
-  const stackOffsetX = index * STACK_OFFSET_X_PX;
-  const startY = startYVh(index);
-  const translateX = `calc(${(1 - eased) * SLIDE_IN_OFFSET_VW}vw + ${eased * stackOffsetX}px)`;
-  const translateY = `calc(${(1 - eased) * startY}vh + ${eased * (-index * STACK_OFFSET_PX)}px)`;
+  const startY = startYVhForGroup(groupIndex);
   const borderClass = getEmployerBorder(exp.employer);
+
+  // Stack offset within group: each card offset from the previous
+  const stackOffsetX = cardIndexInGroup * STACK_OFFSET_X_PX;
+  const stackOffsetY = cardIndexInGroup * STACK_OFFSET_PX;
+  let groupTranslateX = `calc(${(1 - eased) * SLIDE_IN_OFFSET_VW}vw + ${eased * stackOffsetX}px)`;
+  let groupTranslateY = `calc(${(1 - eased) * startY}vh + ${eased * (-stackOffsetY)}px)`;
+  if (isExiting && exitProgress !== undefined) {
+    const exitY = easeOut(exitProgress) * EXIT_TRANSLATE_Y_VH;
+    groupTranslateY = `calc(${groupTranslateY} + ${exitY}vh)`;
+  }
+  const zIndex = isHovered
+    ? groupIndex * HOVER_Z_OFFSET + totalInGroup + HOVER_Z_OFFSET
+    : groupIndex * HOVER_Z_OFFSET + cardIndexInGroup;
+
+  const slideTransition = 'transform 1.4s cubic-bezier(0.22, 1, 0.36, 1)';
+  const exitTransition = `transform ${EXIT_ANIMATION_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`;
 
   return (
     <div
       className="absolute inset-0 flex items-center justify-center px-6 pt-10 pointer-events-none"
-      style={{ zIndex: index + 1 }}
+      style={{ zIndex }}
     >
       <div
-        className={cn(CARD_WIDTH_CLASS, 'pointer-events-auto will-change-transform flex-shrink-0')}
+        className={cn(
+          CARD_WIDTH_CLASS,
+          'will-change-transform flex-shrink-0',
+          isExiting ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'
+        )}
         style={{
-          transform: `translate(${translateX}, ${translateY})`,
-          transition: 'transform 1.4s cubic-bezier(0.22, 1, 0.36, 1)',
+          transform: `translate(${groupTranslateX}, ${groupTranslateY})`,
+          transition: isExiting ? exitTransition : slideTransition,
         }}
+        onMouseEnter={() => onHoverChange(exp.id)}
+        onMouseLeave={() => onHoverChange(null)}
       >
         <div
           className={cn(
             'bg-card border border-border rounded-xl shadow-md overflow-hidden border-l-4 flex flex-col h-[20rem]',
+            isHovered && 'shadow-xl ring-2 ring-primary/20',
             borderClass
           )}
         >
@@ -225,20 +280,86 @@ function ExperienceSlideCard({
   );
 }
 
+function EmployerGroupStack({
+  items,
+  groupIndex,
+  slideProgress,
+  hoveredCardId,
+  onHoverChange,
+  isExiting,
+}: {
+  items: ExperienceItem[];
+  groupIndex: number;
+  slideProgress: number;
+  hoveredCardId: string | null;
+  onHoverChange: (id: string | null) => void;
+  isExiting?: boolean;
+}) {
+  // Animate fly-in from 0→1 when group mounts (slideProgress is 1). Defer the
+  // update so the initial "out" position is painted before we transition to "in".
+  const [displayProgress, setDisplayProgress] = useState(0);
+  const [exitProgress, setExitProgress] = useState(0);
+
+  useEffect(() => {
+    if (slideProgress === 1 && !isExiting) {
+      const id = window.setTimeout(() => setDisplayProgress(1), 0);
+      return () => window.clearTimeout(id);
+    }
+    if (slideProgress === 0) {
+      setDisplayProgress(0);
+    }
+  }, [slideProgress, isExiting]);
+
+  useEffect(() => {
+    if (isExiting) {
+      const id = window.setTimeout(() => setExitProgress(1), 0);
+      return () => window.clearTimeout(id);
+    }
+    setExitProgress(0);
+  }, [isExiting]);
+
+  const progressToUse = slideProgress === 1 && !isExiting ? displayProgress : slideProgress;
+
+  return (
+    <>
+      {items.map((exp, cardIndex) => (
+        <ExperienceSlideCard
+          key={exp.id}
+          exp={exp}
+          groupIndex={groupIndex}
+          cardIndexInGroup={cardIndex}
+          totalInGroup={items.length}
+          slideProgress={progressToUse}
+          isHovered={hoveredCardId === exp.id}
+          onHoverChange={onHoverChange}
+          isExiting={isExiting}
+          exitProgress={isExiting ? exitProgress : undefined}
+        />
+      ))}
+    </>
+  );
+}
+
 function ExperienceDesktop() {
   const sectionRef = useRef<HTMLElement>(null);
   const sectionProgress = useSectionProgress(sectionRef, SECTION_HEIGHT_VH);
   const lenis = useLenis();
-  const [cardProgress, setCardProgress] = useState<number[]>(() => experiences.map(() => 0));
+  const [groupProgress, setGroupProgress] = useState<number[]>(() =>
+    employerGroups.map(() => 0)
+  );
+  const [exitingGroupIndex, setExitingGroupIndex] = useState<number | null>(null);
+  const prevCurrentGroupIndexRef = useRef<number>(0);
+  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
   const animTimeoutRef = useRef<number | null>(null);
   const isAnimatingRef = useRef(false);
   const lastSectionProgressRef = useRef(0);
 
-  // Step cards one-by-one based on scroll direction, with binary states (0 or 1).
+  // Step groups one-by-one based on scroll direction, with binary states (0 or 1).
   useEffect(() => {
-    // When scroll-lock override is active (e.g. scroll-to-top), just sync directly.
     if (isScrollLockOverridden()) {
-      setCardProgress(experiences.map((_, index) => cardSlideProgress(sectionProgress, index)));
+      setGroupProgress(
+        employerGroups.map((_, index) => groupSlideProgress(sectionProgress, index))
+      );
       lastSectionProgressRef.current = sectionProgress;
       return;
     }
@@ -252,8 +373,10 @@ function ExperienceDesktop() {
       return;
     }
 
-    setCardProgress((prev) => {
-      const target = experiences.map((_, index) => cardSlideProgress(sectionProgress, index));
+    setGroupProgress((prev) => {
+      const target = employerGroups.map((_, index) =>
+        groupSlideProgress(sectionProgress, index)
+      );
 
       const entering: number[] = [];
       const exiting: number[] = [];
@@ -283,6 +406,31 @@ function ExperienceDesktop() {
     });
   }, [sectionProgress]);
 
+  // Track exiting group when current group changes: previous flies down, new flies in.
+  const lastActiveIndex = groupProgress.reduce(
+    (best, p, i) => (p === 1 ? i : best),
+    -1
+  );
+  const currentGroupIndex = lastActiveIndex >= 0 ? lastActiveIndex : 0;
+
+  useEffect(() => {
+    if (prevCurrentGroupIndexRef.current !== currentGroupIndex) {
+      const previous = prevCurrentGroupIndexRef.current;
+      prevCurrentGroupIndexRef.current = currentGroupIndex;
+      if (previous >= 0 && previous !== currentGroupIndex) {
+        setExitingGroupIndex(previous);
+      }
+    }
+  }, [currentGroupIndex]);
+
+  useEffect(() => {
+    if (exitingGroupIndex === null) return;
+    const id = window.setTimeout(() => {
+      setExitingGroupIndex(null);
+    }, EXIT_ANIMATION_DURATION_MS);
+    return () => window.clearTimeout(id);
+  }, [exitingGroupIndex]);
+
   // Lock Lenis scroll while a card animation is in progress,
   // unless a global override is active (e.g. scroll-to-top button).
   useEffect(() => {
@@ -303,7 +451,7 @@ function ExperienceDesktop() {
         lenis.start();
       }
     }, 1400); // match CSS transition duration
-  }, [cardProgress, lenis]);
+  }, [groupProgress, lenis]);
 
   // Cleanup on unmount: clear timer and re-enable scroll.
   useEffect(() => {
@@ -327,27 +475,37 @@ function ExperienceDesktop() {
     >
       <div className="sticky top-0 left-0 right-0 h-screen z-10 min-h-screen flex px-6">
         <h2 className="sr-only">Uppdrag</h2>
-        <div className="hidden md:flex flex-1 items-center justify-center">
-          <div className="flex flex-col items-center text-2xl md:text-4xl lg:text-5xl font-semibold tracking-[0.4em] text-foreground uppercase">
-            <span>Upp</span>
-            <span>drag</span>
+        <div className="hidden md:flex flex-1 flex-col items-center justify-center gap-2">
+          <div className="text-2xl md:text-4xl lg:text-5xl font-semibold tracking-[0.4em] text-foreground uppercase">
+            Uppdrag
           </div>
+          <p className="text-sm md:text-base text-muted-foreground">
+            {employerGroups[currentGroupIndex].employer}
+          </p>
         </div>
         <div className="relative flex-[2] min-h-0 pl-8">
-          {experiences.map((exp, index) => {
-            const progress = cardProgress[index] ?? 0;
-            return (
-              <ExperienceSlideCard
-                key={exp.id}
-                exp={exp}
-                index={index}
-                slideProgress={progress}
-              />
-            );
-          })}
+          {exitingGroupIndex !== null && (
+            <EmployerGroupStack
+              key={`exiting-${employerGroups[exitingGroupIndex].employer}`}
+              items={employerGroups[exitingGroupIndex].items}
+              groupIndex={exitingGroupIndex}
+              slideProgress={1}
+              hoveredCardId={null}
+              onHoverChange={() => {}}
+              isExiting
+            />
+          )}
+          <EmployerGroupStack
+            key={employerGroups[currentGroupIndex].employer}
+            items={employerGroups[currentGroupIndex].items}
+            groupIndex={currentGroupIndex}
+            slideProgress={groupProgress[currentGroupIndex] ?? 0}
+            hoveredCardId={hoveredCardId}
+            onHoverChange={setHoveredCardId}
+          />
         </div>
       </div>
-      <div style={{ height: `${VH_CARD_PHASE}vh` }} aria-hidden />
+      <div style={{ height: `${VH_GROUP_PHASE}vh` }} aria-hidden />
     </section>
   );
 }

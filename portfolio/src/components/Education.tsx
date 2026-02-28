@@ -37,7 +37,7 @@ export function Education() {
     : undefined;
 
   return (
-    <section className="relative z-30 py-20 bg-muted overflow-hidden">
+    <section className="relative z-30 min-h-screen flex flex-col justify-center py-20 bg-muted overflow-hidden">
       {/* 10 tilted wavy lines from bottom to top; viewBox matches path extent (y: -50..150, x: 5..95) */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
         <svg
