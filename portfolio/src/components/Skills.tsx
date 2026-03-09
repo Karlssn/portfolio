@@ -1,16 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { skills } from '../data/experience';
-import { useSectionProgress } from '../hooks/useScrollProgress';
-import { useIsDesktop } from '../hooks/useIsDesktop';
 import { cssHslToHex } from '../lib/color';
 
-const SKILLS_SECTION_VH = 380;
-const SKILLS_SCROLL_START = 0.1;
-const SKILLS_SCROLL_END = 0.9;
-
 /**
- * Small Vanta trunk background in the bottom-left corner.
- * Only used on desktop (md+). Colors are read from CSS variables so they follow theme.
+ * Yellow Vanta trunk globe in the corner, using theme colors.
  */
 function TrunkCorner() {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -70,170 +63,44 @@ function TrunkCorner() {
   );
 }
 
-/** Opacity 0..1 when section is in view, for fixed overlay visibility. */
-function sectionVisibility(progress: number): number {
-  const FADE_IN_START = 0; // Start fade as soon as black section becomes fullscreen
-  const FADE_IN_END = 0.08;
-
-  if (progress <= FADE_IN_START) return 0;
-  if (progress >= 1) return 0;
-  if (progress < FADE_IN_END) {
-    return (progress - FADE_IN_START) / (FADE_IN_END - FADE_IN_START);
-  }
-  return 1;
-}
-
-const GAP_PX = 8;
-
-/** Mobile: simple static list, no scroll-driven layout. */
-function SkillsMobile() {
+export function Skills() {
   return (
     <section
-      className="relative py-16 sm:py-20 min-h-0"
-      style={{ minHeight: '50vh' }}
+      className="relative py-16 sm:py-20 overflow-hidden"
+      style={{ minHeight: '100vh' }}
       aria-label="Kompetenser"
     >
-      <div className="container mx-auto px-4 sm:px-6">
-        <h2 className="text-3xl font-bold text-foreground mb-8">
-          Tekniker jag arbetar med
-        </h2>
-        <div className="flex flex-col gap-3">
-          {skills.map((skillName) => (
-            <div
-              key={skillName}
-              className="text-xl font-semibold text-foreground"
-            >
-              {skillName}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+      <div className="container mx-auto px-4 sm:px-6 h-full">
+        <div className="relative flex flex-col md:flex-row items-stretch gap-10 md:gap-16 h-full">
+          <div className="relative flex-1 hidden md:block">
+            <TrunkCorner />
+          </div>
 
-/** Desktop: scroll-driven fixed overlay with Vanta and sliding list. */
-function SkillsDesktop() {
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const curtainRef = useRef<HTMLDivElement | null>(null);
-  const listRef = useRef<HTMLDivElement | null>(null);
-  const [listTranslateY, setListTranslateY] = useState(0);
-
-  const progress = useSectionProgress(sectionRef, SKILLS_SECTION_VH);
-
-  const { currentIndex, position } = useMemo(() => {
-    if (skills.length === 0) {
-      return {
-        currentIndex: 0,
-        position: 0,
-      };
-    }
-
-    const range = SKILLS_SCROLL_END - SKILLS_SCROLL_START;
-    const normalized =
-      range <= 0
-        ? 0
-        : Math.max(0, Math.min(1, (progress - SKILLS_SCROLL_START) / range));
-
-    const pos = normalized * (skills.length - 1);
-    const index = Math.round(pos);
-
-    return {
-      currentIndex: index,
-      position: pos,
-    };
-  }, [progress]);
-
-  useLayoutEffect(() => {
-    const container = curtainRef.current;
-    const list = listRef.current;
-    if (!container || !list || skills.length === 0) return;
-
-    const firstRow = list.querySelector('[data-skill-row]');
-    const containerHeight = container.offsetHeight;
-    const rowHeight = firstRow
-      ? (firstRow as HTMLElement).offsetHeight + GAP_PX
-      : 40;
-
-    const centerY = containerHeight / 2;
-    const activeCenter = position * rowHeight + rowHeight / 2;
-    const translateY = centerY - activeCenter;
-
-    const raf = requestAnimationFrame(() => {
-      setListTranslateY(translateY);
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [position]);
-
-  const visible = sectionVisibility(progress);
-
-  return (
-    <section
-      ref={sectionRef}
-      className="relative"
-      style={{ minHeight: `${SKILLS_SECTION_VH}vh` }}
-      aria-label="Kompetenser"
-    >
-      <div
-        className="fixed inset-0 z-10 pointer-events-none flex flex-col md:flex-row justify-center px-4 md:px-8 lg:px-12"
-        style={{ opacity: visible }}
-        aria-hidden={visible < 0.5}
-      >
-        <div className="pointer-events-auto w-full md:w-5/12 lg:max-w-xl md:pr-10 md:self-center md:-mt-[37vh]">
-          <TrunkCorner />
-          <div className="relative">
-            <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
+          <div className="relative flex-1 md:flex md:flex-col md:justify-center z-10">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
               Tekniker jag arbetar med
             </h2>
-          </div>
-        </div>
+            <p className="mt-4 max-w-xl text-base sm:text-lg text-muted-foreground">
+              Jag har flera års erfarenhet som fullstackutvecklare med fokus på .NET och
+              moderna webbtekniker. Jag strävar efter att skriva lösningar som är lätta
+              att underhålla, tydligt strukturerade och byggda för att hålla över tid. Jag
+              lägger också mycket vikt vid kontinuerligt lärande, så att jag kan göra
+              välgrundade och pragmatiska teknikval i varje nytt projekt.
+            </p>
 
-        <div className="pointer-events-auto w-full md:w-7/12 lg:max-w-2xl md:pl-10 mt-10 md:mt-0 md:self-center md:ml-4">
-          <div
-            ref={curtainRef}
-            className="relative h-56 md:h-72 overflow-hidden"
-          >
-            <div
-              ref={listRef}
-              className="relative flex flex-col gap-2 transition-[transform] duration-300 ease-out"
-              style={{ transform: `translateY(${listTranslateY}px)` }}
-            >
-              {skills.map((skillName, index) => {
-                const distance = Math.abs(index - currentIndex);
-
-                let opacity = 0.25;
-                if (distance === 0) opacity = 1;
-                else if (distance === 1) opacity = 0.85;
-                else if (distance === 2) opacity = 0.6;
-                else if (distance === 3) opacity = 0.4;
-
-                const isCurrent = index === currentIndex;
-
-                return (
-                  <div
-                    key={skillName}
-                    data-skill-row
-                    className={
-                      'text-xl md:text-3xl font-semibold transition-all duration-300 ' +
-                      (isCurrent
-                        ? 'text-primary'
-                        : 'text-foreground/80 scale-95')
-                    }
-                    style={{ opacity }}
-                  >
-                    {skillName}
-                  </div>
-                );
-              })}
+            <div className="mt-8 flex flex-wrap gap-3">
+              {skills.map((skillName) => (
+                <span
+                  key={skillName}
+                  className="inline-flex items-center rounded-full border border-border px-4 py-1.5 text-sm sm:text-base font-medium text-foreground/90 bg-background/40 backdrop-blur"
+                >
+                  {skillName}
+                </span>
+              ))}
             </div>
           </div>
         </div>
       </div>
     </section>
   );
-}
-
-export function Skills() {
-  const isDesktop = useIsDesktop();
-  return isDesktop ? <SkillsDesktop /> : <SkillsMobile />;
 }
