@@ -19,7 +19,7 @@ export function Hero() {
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => setHeroInView(entry.isIntersecting),
-      { threshold: 1 }  // disappear when hero is no longer 100% visible
+      { threshold: 0.8 }  // disappear when hero is no longer 100% visible
     );
     obs.observe(el);
     return () => obs.disconnect();
