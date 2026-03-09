@@ -92,7 +92,7 @@ export function Skills() {
               {skills.map((skillName) => (
                 <span
                   key={skillName}
-                  className="inline-flex items-center rounded-full border border-border px-4 py-1.5 text-sm sm:text-base font-medium text-foreground/90 bg-background/40 backdrop-blur"
+                  className="inline-flex items-center rounded-full border border-border px-4 py-1.5 text-sm sm:text-base font-medium text-foreground/90 bg-background/40 backdrop-blur hover:border-primary/30 transition-colors cursor-pointer"
                 >
                   {skillName}
                 </span>

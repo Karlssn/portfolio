@@ -36,6 +36,8 @@ export function Education() {
     ? { opacity: o3, transform: `translateY(${(1 - o3) * 20}px)` }
     : undefined;
 
+  const [mainEducation, ...courses] = education;
+
   return (
     <section className="relative z-30 min-h-screen flex flex-col justify-center py-20 bg-muted overflow-hidden">
       {/* 10 tilted wavy lines from bottom to top; viewBox matches path extent (y: -50..150, x: 5..95) */}
@@ -145,19 +147,38 @@ export function Education() {
             </div>
 
             <div className="space-y-4">
-              {education.map((edu) => (
+              {mainEducation && (
                 <div
-                  key={`${edu.degree}-${edu.school}-${edu.period}`}
                   className={cn(
                     "bg-card border border-border rounded-lg p-4",
                     "hover:border-primary/30 transition-colors"
                   )}
                 >
-                  <h4 className="font-semibold text-foreground text-sm">{edu.degree}</h4>
-                  <p className="text-sm text-muted-foreground">{edu.school}</p>
-                  <span className="text-xs text-muted-foreground">{edu.period}</span>
+                  <h4 className="font-semibold text-foreground text-sm">{mainEducation.degree}</h4>
+                  <p className="text-sm text-muted-foreground">{mainEducation.school}</p>
+                  <span className="text-xs text-muted-foreground">{mainEducation.period}</span>
                 </div>
-              ))}
+              )}
+
+              {courses.length > 0 && (
+                <div
+                  className={cn(
+                    "bg-card border border-border rounded-lg p-4",
+                    "hover:border-primary/30 transition-colors"
+                  )}
+                >
+                  <h4 className="font-semibold text-foreground text-sm">Fristående kurser</h4>
+                  <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    {courses.map((course) => (
+                      <li
+                        key={`${course.degree}-${course.school}-${course.period}`}
+                      >
+                        {course.degree} – {course.school} ({course.period})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </div>

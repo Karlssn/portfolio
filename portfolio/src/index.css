@@ -51,6 +51,19 @@
   html {
     scroll-behavior: auto; /* Lenis handles smooth scroll */
     overflow-x: hidden; /* Prevent unintended horizontal scrolling */
+    font-size: 16px;
+  }
+
+  @media (min-width: 1280px) {
+    html {
+      font-size: 18px;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    html {
+      font-size: 20px;
+    }
   }
 }
 
