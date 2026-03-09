@@ -5,6 +5,7 @@ import type { Experience as ExperienceItem } from '../data/experience';
 import { cn } from '../lib/utils';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useLenis } from 'lenis/react';
+import { getLocalized, useLanguage } from '../i18n';
 
 function getEmployerBorder(employer: string) {
   return EMPLOYER_BORDER_CLASS[employer] ?? 'border-l-border';
@@ -33,6 +34,7 @@ const employerGroups = groupByEmployer(experiences);
 // ---- Mobile: accordion ----
 
 function ExperienceCardContent({ exp }: { exp: ExperienceItem }) {
+  const { language } = useLanguage();
   const borderClass = getEmployerBorder(exp.employer);
   return (
     <div
@@ -44,14 +46,18 @@ function ExperienceCardContent({ exp }: { exp: ExperienceItem }) {
       <div className="px-4 sm:px-5 py-3 border-b border-border/80">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="text-sm font-bold text-foreground">{exp.company}</h3>
-          <span className="text-xs text-muted-foreground">{exp.period}</span>
+          <span className="text-xs text-muted-foreground">
+            {getLocalized(exp.period, language)}
+          </span>
         </div>
-        <p className="text-xs text-primary font-medium mt-0.5">{exp.role}</p>
+        <p className="text-xs text-primary font-medium mt-0.5">
+          {getLocalized(exp.role, language)}
+        </p>
         <p className="text-xs text-muted-foreground">{exp.employer}</p>
       </div>
       <div className="px-4 sm:px-5 py-3">
         <p className="text-xs text-muted-foreground leading-relaxed mb-2">
-          {exp.description}
+          {getLocalized(exp.description, language)}
         </p>
         <div className="flex flex-wrap gap-1.5">
           {exp.technologies.map((tech) => (
@@ -69,6 +75,7 @@ function ExperienceCardContent({ exp }: { exp: ExperienceItem }) {
 }
 
 function ExperienceMobile() {
+  const { language } = useLanguage();
   const [openEmployer, setOpenEmployer] = useState<string | null>(employerGroups[0]?.employer ?? null);
   const accordionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const lenis = useLenis();
@@ -94,7 +101,7 @@ function ExperienceMobile() {
     <div className="relative bg-muted/40 py-16 sm:py-20 min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 max-w-2xl">
         <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-8">
-          Erfarenhet
+          {language === 'sv' ? 'Erfarenhet' : 'Experience'}
         </h2>
         <div className="space-y-2">
           {employerGroups.map(({ employer, items }) => {
@@ -120,7 +127,9 @@ function ExperienceMobile() {
                   <div className="flex flex-col items-start gap-0.5">
                     <span className="text-sm font-semibold text-foreground">{employer}</span>
                     <span className="text-xs text-muted-foreground">
-                      {items.length} uppdrag
+                      {language === 'sv'
+                        ? `${items.length} uppdrag`
+                        : `${items.length} assignments`}
                     </span>
                   </div>
                   {isOpen ? (
@@ -191,6 +200,7 @@ function ExperienceSlideCard({
   isExiting?: boolean;
   exitProgress?: number;
 }) {
+  const { language } = useLanguage();
   const eased = easeOut(Math.min(1, slideProgress));
   const startY = startYVhForGroup(groupIndex);
   const borderClass = getEmployerBorder(exp.employer);
@@ -246,14 +256,18 @@ function ExperienceSlideCard({
           <div className="px-5 py-4 border-b border-border/80 flex-shrink-0">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h3 className="font-bold text-foreground">{exp.company}</h3>
-              <span className="text-xs text-muted-foreground">{exp.period}</span>
+              <span className="text-xs text-muted-foreground">
+                {getLocalized(exp.period, language)}
+              </span>
             </div>
-            <p className="text-sm text-primary font-medium mt-0.5">{exp.role}</p>
+            <p className="text-sm text-primary font-medium mt-0.5">
+              {getLocalized(exp.role, language)}
+            </p>
             <p className="text-xs text-muted-foreground">{exp.employer}</p>
           </div>
           <div className="px-5 py-4 flex-1 min-h-0 overflow-y-auto">
             <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-              {exp.description}
+              {getLocalized(exp.description, language)}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {exp.technologies.map((tech) => (
@@ -333,6 +347,7 @@ function EmployerGroupStack({
 }
 
 function ExperienceDesktop() {
+  const { language } = useLanguage();
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [exitingGroupIndex, setExitingGroupIndex] = useState<number | null>(null);
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
@@ -357,7 +372,9 @@ function ExperienceDesktop() {
     <section className="relative bg-muted/40 min-h-screen flex items-center">
       <div className="container mx-auto px-6 lg:px-10 flex flex-col lg:flex-row gap-10 py-16">
         <div className="flex-1 flex flex-col items-start justify-center gap-4">
-          <h2 className="text-3xl lg:text-4xl font-bold text-foreground">Uppdrag</h2>
+          <h2 className="text-3xl lg:text-4xl font-bold text-foreground">
+            {language === 'sv' ? 'Uppdrag' : 'Assignments'}
+          </h2>
           <p className="text-sm md:text-base text-muted-foreground">
             {employerGroups[currentGroupIndex].employer}
           </p>

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { skills } from '../data/experience';
 import { cssHslToHex } from '../lib/color';
+import { useLanguage } from '../i18n';
 
 /**
  * Yellow Vanta trunk globe in the corner, using theme colors.
@@ -64,11 +65,12 @@ function TrunkCorner() {
 }
 
 export function Skills() {
+  const { language } = useLanguage();
   return (
     <section
       className="relative py-16 sm:py-20 overflow-hidden"
       style={{ minHeight: '100vh' }}
-      aria-label="Kompetenser"
+      aria-label={language === 'sv' ? 'Kompetenser' : 'Skills'}
     >
       <div className="container mx-auto px-4 sm:px-6 h-full">
         <div className="relative flex flex-col md:flex-row items-stretch gap-10 md:gap-16 h-full">
@@ -78,14 +80,12 @@ export function Skills() {
 
           <div className="relative flex-1 md:flex md:flex-col md:justify-center z-10">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-              Tekniker jag arbetar med
+              {language === 'sv' ? 'Tekniker jag arbetar med' : 'Technologies I work with'}
             </h2>
             <p className="mt-4 max-w-xl text-base sm:text-lg text-muted-foreground">
-              Jag har flera års erfarenhet som fullstackutvecklare med fokus på .NET och
-              moderna webbtekniker. Jag strävar efter att skriva lösningar som är lätta
-              att underhålla, tydligt strukturerade och byggda för att hålla över tid. Jag
-              lägger också mycket vikt vid kontinuerligt lärande, så att jag kan göra
-              välgrundade och pragmatiska teknikval i varje nytt projekt.
+              {language === 'sv'
+                ? 'Jag har flera års erfarenhet som fullstackutvecklare med fokus på .NET och moderna webbtekniker. Jag strävar efter att skriva lösningar som är lätta att underhålla, tydligt strukturerade och byggda för att hålla över tid. Jag lägger också mycket vikt vid kontinuerligt lärande, så att jag kan göra välgrundade och pragmatiska teknikval i varje nytt projekt.'
+                : 'I have several years of experience as a fullstack developer with a focus on .NET and modern web technologies. I aim to build solutions that are easy to maintain, clearly structured and built to last. I also place a lot of emphasis on continuous learning so I can make well founded and pragmatic technology choices in every new project.'}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">

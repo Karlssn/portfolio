@@ -4,6 +4,7 @@ import { education, certifications, employers } from '../data/experience';
 import { useElementVisibility } from '../hooks/useScrollProgress';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { cn } from '../lib/utils';
+import { getLocalized, useLanguage } from '../i18n';
 
 /** Staggered visibility: 0..1 with optional delay so column appears later on fade-in. */
 function staggeredVisibility(visibility: number, delay: number): number {
@@ -12,6 +13,7 @@ function staggeredVisibility(visibility: number, delay: number): number {
 }
 
 export function Education() {
+  const { language } = useLanguage();
   const employersRef = useRef<HTMLDivElement | null>(null);
   const certsRef = useRef<HTMLDivElement | null>(null);
   const educationRef = useRef<HTMLDivElement | null>(null);
@@ -73,7 +75,9 @@ export function Education() {
               <div className="p-2 rounded-lg bg-secondary text-primary">
                 <BookOpen className="w-5 h-5" />
               </div>
-              <h3 className="text-xl font-bold text-foreground">Arbetsgivare</h3>
+              <h3 className="text-xl font-bold text-foreground">
+                {language === 'sv' ? 'Arbetsgivare' : 'Employers'}
+              </h3>
             </div>
 
             <div className="space-y-4">
@@ -88,10 +92,12 @@ export function Education() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <h4 className="font-semibold text-foreground">{employer.name}</h4>
-                      <p className="text-sm text-muted-foreground">{employer.role}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {getLocalized(employer.role, language)}
+                      </p>
                     </div>
                     <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded shrink-0">
-                      {employer.period}
+                      {getLocalized(employer.period, language)}
                     </span>
                   </div>
                 </div>
@@ -108,7 +114,9 @@ export function Education() {
               <div className="p-2 rounded-lg bg-secondary text-primary">
                 <Award className="w-5 h-5" />
               </div>
-              <h3 className="text-xl font-bold text-foreground">Certifieringar</h3>
+              <h3 className="text-xl font-bold text-foreground">
+                {language === 'sv' ? 'Certifieringar' : 'Certifications'}
+              </h3>
             </div>
 
             <div className="space-y-4">
@@ -143,7 +151,9 @@ export function Education() {
               <div className="p-2 rounded-lg bg-secondary text-primary">
                 <GraduationCap className="w-5 h-5" />
               </div>
-              <h3 className="text-xl font-bold text-foreground">Utbildning</h3>
+              <h3 className="text-xl font-bold text-foreground">
+                {language === 'sv' ? 'Utbildning' : 'Education'}
+              </h3>
             </div>
 
             <div className="space-y-4">
@@ -154,9 +164,15 @@ export function Education() {
                     "hover:border-primary/30 transition-colors"
                   )}
                 >
-                  <h4 className="font-semibold text-foreground text-sm">{mainEducation.degree}</h4>
-                  <p className="text-sm text-muted-foreground">{mainEducation.school}</p>
-                  <span className="text-xs text-muted-foreground">{mainEducation.period}</span>
+                  <h4 className="font-semibold text-foreground text-sm">
+                    {getLocalized(mainEducation.degree, language)}
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {getLocalized(mainEducation.school, language)}
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    {getLocalized(mainEducation.period, language)}
+                  </span>
                 </div>
               )}
 
@@ -167,13 +183,17 @@ export function Education() {
                     "hover:border-primary/30 transition-colors"
                   )}
                 >
-                  <h4 className="font-semibold text-foreground text-sm">Fristående kurser</h4>
+                  <h4 className="font-semibold text-foreground text-sm">
+                    {language === 'sv' ? 'Fristående kurser' : 'Standalone courses'}
+                  </h4>
                   <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                     {courses.map((course) => (
                       <li
                         key={`${course.degree}-${course.school}-${course.period}`}
                       >
-                        {course.degree} – {course.school} ({course.period})
+                        {getLocalized(course.degree, language)} –{' '}
+                        {getLocalized(course.school, language)} (
+                        {getLocalized(course.period, language)})
                       </li>
                     ))}
                   </ul>

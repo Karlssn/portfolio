@@ -3,6 +3,7 @@ import { Hero, Experience, Education, Contact, Skills, ScrollToTop } from './com
 import { useEffect, useRef } from 'react';
 import { useIsDesktop } from './hooks/useIsDesktop';
 import { isScrollLockOverridden } from './lib/scrollLock';
+import { useLanguage } from './i18n';
 
 const lenisOptions = {
   duration: 1.2,
@@ -112,10 +113,17 @@ function FullPageScrollController() {
 }
 
 function App() {
+  const { language } = useLanguage();
   return (
     <ReactLenis root options={lenisOptions}>
       <div className="min-h-screen bg-background text-foreground">
-        <main aria-label="Martin Wärlegård – portfolio">
+        <main
+          aria-label={
+            language === 'sv'
+              ? 'Martin Wärlegård – portfölj'
+              : 'Martin Wärlegård – portfolio'
+          }
+        >
           <FullPageScrollController />
           <Hero />
           <Experience />

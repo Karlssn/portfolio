@@ -3,6 +3,7 @@ import { ChevronDown, Download } from 'lucide-react';
 import { reveal } from '../hooks/useScrollProgress';
 import profilbild from '../assets/profilbild-b3.png';
 import { CV_PATH, CV_DOWNLOAD_FILENAME } from '../constants';
+import { useLanguage } from '../i18n';
 
 const HERO_ZONE_VH = 100;
 
@@ -12,6 +13,7 @@ const HERO_REVEAL_DURATION_MS = 1800;
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
   const [heroInView, setHeroInView] = useState(true);
+  const { language, toggleLanguage } = useLanguage();
 
   // Hide scroll hint as soon as user scrolls past the hero (leaves first page)
   useEffect(() => {
@@ -60,17 +62,52 @@ export function Hero() {
         {/* Dot grid background (CSS-only, does not affect animations) */}
         <div className="hero-dots" aria-hidden />
 
-        {/* CV download – muted, top-right, fades in last */}
-        <a
-          href={CV_PATH}
-          download={CV_DOWNLOAD_FILENAME}
-          className="absolute top-6 right-6 z-10 flex items-center gap-2 rounded-lg border border-border bg-muted/70 px-3 py-2 text-sm text-muted-foreground transition-all duration-300 ease-out hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-          style={{ opacity: cvButtonVisible, transform: `translateY(${8 * (1 - cvButtonVisible)}px)` }}
-          aria-label="Ladda ner CV"
+        {/* Language toggle + CV download – muted, top-right, fade in last */}
+        <div
+          className="absolute top-6 right-6 z-10 flex items-center gap-3"
+          style={{
+            opacity: cvButtonVisible,
+            transform: `translateY(${8 * (1 - cvButtonVisible)}px)`,
+          }}
         >
-          <Download className="h-4 w-4" />
-          <span>CV</span>
-        </a>
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="flex items-center gap-1 rounded-lg border border-border bg-muted/70 px-3 py-2 text-xs sm:text-sm text-muted-foreground transition-all duration-300 ease-out hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+            aria-label={
+              language === 'sv' ? 'Switch to English' : 'Byt till svenska'
+            }
+          >
+            <span
+              className={
+                language === 'sv'
+                  ? 'font-semibold text-foreground'
+                  : 'text-muted-foreground'
+              }
+            >
+              SV
+            </span>
+            <span className="text-muted-foreground">/</span>
+            <span
+              className={
+                language === 'en'
+                  ? 'font-semibold text-foreground'
+                  : 'text-muted-foreground'
+              }
+            >
+              EN
+            </span>
+          </button>
+          <a
+            href={CV_PATH}
+            download={CV_DOWNLOAD_FILENAME}
+            className="flex items-center gap-2 rounded-lg border border-border bg-muted/70 px-3 py-2 text-sm text-muted-foreground transition-all duration-300 ease-out hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+            aria-label={language === 'sv' ? 'Ladda ner CV' : 'Download CV'}
+          >
+            <Download className="h-4 w-4" />
+            <span>CV</span>
+          </a>
+        </div>
 
         <div className="container mx-auto max-w-4xl relative z-10 text-center">
           {/* Name + tagline (revealed after 1s) */}
@@ -117,7 +154,9 @@ export function Hero() {
                 transform: `translateY(${16 * (1 - tagline)}px)`,
               }}
             >
-              Engagerad och lösningsorienterad senior systemutvecklare med erfarenhet av både nyutveckling och komplex förvaltning, som med hjälp av moderna AI-verktyg bygger hållbara system med fokus på arkitektur, kodkvalitet och förvaltningsbarhet.
+              {language === 'sv'
+                ? 'Engagerad och lösningsorienterad senior systemutvecklare med erfarenhet av både nyutveckling och komplex förvaltning, som med hjälp av moderna AI-verktyg bygger hållbara system med fokus på arkitektur, kodkvalitet och förvaltningsbarhet.'
+                : 'Senior software developer with experience from both complex maintenance and new development. I use modern AI tools to design clear architectures, keep code quality high and build systems that are easy to work with over time.'}
             </p>
           </div>
         </div>
@@ -128,7 +167,9 @@ export function Hero() {
           style={{ opacity: heroInView ? scrollHintVisible : 0 }}
           aria-hidden
         >
-          <span className="text-sm text-muted-foreground">Scrolla för mer</span>
+          <span className="text-sm text-muted-foreground">
+            {language === 'sv' ? 'Scrolla för mer' : 'Scroll for more'}
+          </span>
           <ChevronDown className="w-5 h-5 text-muted-foreground animate-bounce" />
         </div>
       </section>

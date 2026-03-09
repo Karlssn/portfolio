@@ -1,10 +1,12 @@
 import { Mail, Phone, Linkedin, Github, Download } from 'lucide-react';
 import { CV_PATH, CV_DOWNLOAD_FILENAME, CONTACT } from '../constants';
+import { useLanguage } from '../i18n';
 
 const linkFocus =
   'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background';
 
 export function Contact() {
+  const { language } = useLanguage();
   return (
     <section
       id="contact"
@@ -18,14 +20,14 @@ export function Contact() {
             id="contact-heading"
             className="text-3xl lg:text-4xl font-bold text-foreground"
           >
-            Kontakt
+            {language === 'sv' ? 'Kontakt' : 'Contact'}
           </h2>
         </div>
 
         <div className="max-w-4xl mx-auto">
           <div className="bg-card border border-border rounded-xl py-6 px-3 sm:p-6 max-w-md mx-auto">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-              Kontaktuppgifter
+              {language === 'sv' ? 'Kontaktuppgifter' : 'Contact details'}
             </h3>
 
             <div className="space-y-3">
@@ -37,7 +39,9 @@ export function Contact() {
                   <Mail className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">E-post</p>
+                  <p className="text-xs text-muted-foreground">
+                    {language === 'sv' ? 'E-post' : 'Email'}
+                  </p>
                   <p className="text-sm text-foreground font-medium">
                     {CONTACT.email}
                   </p>
@@ -52,7 +56,9 @@ export function Contact() {
                   <Phone className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Telefon</p>
+                  <p className="text-xs text-muted-foreground">
+                    {language === 'sv' ? 'Telefon' : 'Phone'}
+                  </p>
                   <p className="text-sm text-foreground font-medium">
                     {CONTACT.phoneDisplay}
                   </p>
@@ -70,7 +76,7 @@ export function Contact() {
                 <div>
                   <p className="text-xs text-muted-foreground">CV</p>
                   <p className="text-sm text-foreground font-medium">
-                    Ladda ner CV
+                    {language === 'sv' ? 'Ladda ner CV' : 'Download CV'}
                   </p>
                 </div>
               </a>
