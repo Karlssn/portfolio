@@ -53,8 +53,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleLanguage = useCallback(() => {
-    setLanguage((prev) => (prev === 'sv' ? 'en' : 'sv'));
-  }, [setLanguage]);
+    setLanguage(language === 'sv' ? 'en' : 'sv');
+  }, [language, setLanguage]);
 
   const value = useMemo(
     () => ({
